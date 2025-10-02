@@ -205,10 +205,17 @@ EOF
     ln -sf "$ESCRITORIO_DIR" "$DESKTOP_DIR" 2>/dev/null || true
     
     # 6. CONFIGURAR CONTEXTO MENÚ COMPLETO
-    echo "Configurando menú contextual completo..."
-    
-    # Instalar herramientas adicionales para mejor experiencia
-    apt install -y nautilus-actions filemanager-actions
+echo "Configurando menú contextual completo..."
+
+# Instalar herramientas adicionales para mejor experiencia (versiones compatibles con Debian 13)
+apt install -y nautilus-admin nautilus-extension-gnome-terminal
+
+# Configurar acciones de administrador para Nautilus
+if which nautilus >/dev/null 2>&1; then
+    # Habilitar extensiones de nautilus
+    gsettings set org.gnome.nautilus.extensions.enabled "['nautilus-admin@gnome-shell-extensions.gcampax.github.com']"
+    echo "✓ Extensiones de Nautilus configuradas"
+fi
     
     # 7. CONFIGURAR COMPORTAMIENTO DE ARRASTRE Y SOLTAR
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences enable-interactive-search true
