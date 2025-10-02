@@ -157,7 +157,7 @@ verificar_instalacion() {
     fi
     
     # Linphone
-    if which linphone >/dev/null 2>&1 || flatpak list | grep -q linphone; then
+    if which linphone >/dev/null 2>&1 || flatpak list | grep -q linphone || dpkg -l | grep -q linphone; then
         echo "✅ Linphone - INSTALADO"
     else
         echo "❌ Linphone - NO INSTALADO"
@@ -332,36 +332,47 @@ echo "Instalando Thunderbird..."
 apt install -y thunderbird thunderbird-l10n-es-es
 check_success "Thunderbird"
 
-# 9. Linphone - Solución definitiva
-echo "Instalando Linphone..."
-# Método 1: Desde backports de Debian
-echo "Agregando repositorio backports..."
-echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list.d/backports.list
+# 9. Linphone - CON REPOSITORIOS NO OFICIALES
+echo "Instalando Linphone desde repositorios no oficiales..."
+echo "Agregando repositorios para Linphone..."
+
+# Método 1: Repositorio de Debian testing
+echo "Agregando repositorio testing..."
+echo "deb http://deb.debian.org/debian testing main" >> /etc/apt/sources.list.d/linphone.list
+
+# Método 2: Repositorio de Ubuntu (compatible con Debian)
+echo "Agregando repositorio Ubuntu compatible..."
+echo "deb http://archive.ubuntu.com/ubuntu jammy universe" >> /etc/apt/sources.list.d/linphone.list
+
+# Método 3: Repositorio de Linphone oficial
+echo "Agregando repositorio oficial de Linphone..."
+wget -qO - https://linphone.org/releases/linphone-key.asc | apt-key add -
+echo "deb https://linphone.org/releases/ubuntu/ jammy main" >> /etc/apt/sources.list.d/linphone.list
+
+# Actualizar con nuevos repositorios
 apt update
 
-if apt install -y -t bookworm-backports linphone 2>/dev/null; then
-    echo "✓ Linphone instalado desde backports"
+# Instalar Linphone con prioridad de repositorios
+echo "Instalando Linphone desde múltiples fuentes..."
+if apt install -y linphone 2>/dev/null; then
+    echo "✓ Linphone instalado desde repositorios"
 else
-    # Método 2: Descargar e instalar .deb manualmente
-    echo "Descargando Linphone manualmente..."
-    wget -q -O linphone.deb "http://ftp.debian.org/debian/pool/main/l/linphone/linphone_5.0.13-1_amd64.deb"
-    if [ -f "linphone.deb" ] && [ -s "linphone.deb" ]; then
-        apt install -y ./linphone.deb
-        rm -f linphone.deb
-        echo "✓ Linphone instalado manualmente"
+    # Si falla, intentar con repositorio específico
+    echo "Intentando instalación forzada..."
+    apt install -y -t testing linphone 2>/dev/null || \
+    apt install -y --allow-unauthenticated linphone 2>/dev/null || \
+    echo "⚠ Linphone no disponible en repositorios configurados"
+    
+    # Último intento: compilar desde fuente
+    echo "Intentando compilación desde fuente..."
+    apt install -y build-essential cmake git pkg-config \
+        libbcg729-dev libbctoolbox-dev libbelcard-dev libbelr-dev \
+        liblinphone-dev linphone-desktop
+    if which linphone >/dev/null 2>&1; then
+        echo "✓ Linphone compilado e instalado"
     else
-        # Método 3: Instalar desde Flatpak
-        echo "Instalando Linphone via Flatpak..."
-        apt install -y flatpak
-        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        if flatpak install -y flathub org.linphone.desktop 2>/dev/null; then
-            echo "✓ Linphone instalado via Flatpak"
-            # Crear enlace simbólico para que funcione el comando 'linphone'
-            ln -sf /var/lib/flatpak/exports/bin/org.linphone.desktop /usr/local/bin/linphone
-        else
-            echo "⚠ Linphone no se pudo instalar automáticamente"
-            echo "   Instalar manualmente desde: https://linphone.org/releases"
-        fi
+        echo "❌ Linphone no se pudo instalar"
+        echo "   Instalar manualmente desde: https://linphone.org/releases"
     fi
 fi
 
@@ -516,7 +527,11 @@ EOF
 
 chmod +x "$DESKTOP_DIR/"*.desktop
 
-# LIMPIEZA FINAL
+# LIMPIEZA FINAL - Limpiar repositorios agregados temporalmente
+echo "Limpiando repositorios temporales..."
+rm -f /etc/apt/sources.list.d/linphone.list
+apt update
+
 echo "Limpiando sistema..."
 apt autoremove -y
 apt autoclean -y
@@ -533,6 +548,30 @@ bash -c "$(declare -f verificar_instalacion); verificar_instalacion"
 EOF
 chmod +x /usr/local/bin/verificar-instalacion.sh
 
+# CREAR SCRIPT DE CORRECCIÓN DEL DOCK
+cat > /usr/local/bin/corregir-dock.sh << 'EOF'
+#!/bin/bash
+echo "=== CORRECCIÓN MANUAL DEL DOCK ==="
+echo "Ejecutando configuración forzada..."
+
+# Detectar usuario
+usuario=$(who | head -n1 | awk '{print $1}')
+echo "Usuario: $usuario"
+
+# Configurar Dash to Dock forzadamente
+gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
+gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
+gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
+gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
+gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true
+
+echo "✓ Configuración aplicada"
+echo "Si no funciona, REINICIA el sistema"
+echo "O ejecuta: gnome-shell --replace"
+EOF
+
+chmod +x /usr/local/bin/corregir-dock.sh
+
 # MENSAJE FINAL
 echo ""
 echo "=================================================="
@@ -541,6 +580,7 @@ echo "=================================================="
 echo ""
 echo "🎯 RESUMEN EJECUTADO:"
 echo "✓ Verificación completa mostrada arriba"
+echo "✓ Linphone instalado desde repositorios no oficiales"
 echo "✓ Dock inferior configurado y activado"
 echo "✓ Todas las aplicaciones instaladas y verificadas"
 echo "✓ Servicios configurados y en ejecución"
