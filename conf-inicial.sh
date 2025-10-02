@@ -458,33 +458,36 @@ echo "Instalando Thunderbird..."
 apt install -y thunderbird thunderbird-l10n-es-es
 check_success "Thunderbird"
 
+#!/bin/bash
 set -e
 
-echo "=== Instalando dependencias de compilación ==="
+echo "=== Instalando dependencias de compilación (incluyendo Qt6) ==="
 sudo apt update
 sudo apt install -y \
     git build-essential cmake ninja-build pkg-config \
     libx11-dev libxext-dev libxrender-dev libxinerama-dev libxtst-dev \
     libxrandr-dev libxi-dev libpulse-dev libasound2-dev \
-    libsqlite3-dev libssl-dev libvpx-dev libz-dev libspeex-dev \
+    libsqlite3-dev libssl-dev libvpx-dev zlib1g-dev libspeex-dev \
     libspeexdsp-dev libopus-dev libavcodec-dev libavutil-dev \
     libswscale-dev libswresample-dev libxml2-dev \
-    qtbase5-dev qtdeclarative5-dev qml-module-qtquick-controls2 \
-    qml-module-qtquick-layouts qml-module-qtquick-dialogs \
-    qml-module-qtquick2 qml-module-qtgraphicaleffects \
-    qml-module-qtwebsockets qml-module-qt-labs-platform \
-    libqt5svg5-dev
+    qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools \
+    qt6-l10n-tools qt6-svg-dev \
+    qml6-module-qtquick qml6-module-qtquick-controls \
+    qml6-module-qtquick-dialogs qml6-module-qtquick-layouts \
+    qml6-module-qtquick-templates qml6-module-qtgraphicaleffects \
+    qml6-module-qtwebsockets qml6-module-qt-labs-platform
 
-echo "=== Clonando repositorio de Linphone ==="
+echo "=== Clonando repositorio de Linphone Desktop ==="
 mkdir -p ~/src && cd ~/src
 if [ ! -d "linphone-desktop" ]; then
     git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git
 fi
 cd linphone-desktop
+git pull
 
-echo "=== Preparando compilación ==="
+echo "=== Preparando compilación con Qt6 ==="
 mkdir -p build && cd build
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DLINPHONE_QT=Qt6
 
 echo "=== Compilando Linphone ==="
 ninja
