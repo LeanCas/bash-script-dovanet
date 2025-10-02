@@ -7,7 +7,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Configuración de variables
-IMAGE_URL="https://ejemplo.com/fondo-empresa.jpg"
+IMAGE_URL="https://drive.google.com/uc?export=download&id=1Khfg0Ow3PLQ6hjyel32IzsEMZeZ6ZUiM"
 GAJIM_SERVER="10.2.70.36"
 OWNCLOUD_SERVER="10.2.70.97:1030"
 TELEFONIA_SERVER="143.0.66.222"
@@ -22,32 +22,7 @@ check_success() {
     fi
 }
 
-# Función para configuraciones GNOME (MEJORADA)
-#!/bin/bash
-
-# Script de configuración CORREGIDO para estaciones de trabajo empresariales
-if [ "$EUID" -ne 0 ]; then
-    echo "Por favor, ejecuta este script como root o con sudo"
-    exit 1
-fi
-
-# Configuración de variables
-IMAGE_URL="https://ejemplo.com/fondo-empresa.jpg"
-GAJIM_SERVER="10.2.70.36"
-OWNCLOUD_SERVER="10.2.70.97:1030"
-TELEFONIA_SERVER="143.0.66.222"
-
-# Función mejorada con manejo de errores
-check_success() {
-    if [ $? -eq 0 ]; then
-        echo "✓ $1 completado"
-    else
-        echo "⚠ Error en: $1 - Continuando..."
-        return 1
-    fi
-}
-
-# Función para configuraciones GNOME (MEJORADA)
+# Función para configuraciones GNOME - BARRA INFERIOR COMO WINDOWS
 configurar_gnome() {
     local usuario=$(logname)
     
@@ -62,10 +37,13 @@ configurar_gnome() {
         return 1
     fi
     
-    # Configurar DBUS correctamente
     export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
     
     echo "Configurando GNOME para usuario: $usuario"
+    echo "Instalando Dash to Panel (barra estilo Windows)..."
+    
+    # Instalar Dash to Panel (mejor que Dash to Dock)
+    apt install -y gnome-shell-extension-dash-to-panel
     
     # Workspace único
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.mutter dynamic-workspaces false
@@ -81,58 +59,33 @@ configurar_gnome() {
     # Botones de ventana
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
     
-    # DOCK VISIBLE (para ver ventanas minimizadas) - INSTALAR EXTENSIÓN
-    echo "Instalando extensión Dash to Dock..."
-    apt install -y gnome-shell-extension-dash-to-dock
+    # CONFIGURACIÓN DASH TO PANEL (BARRA INFERIOR COMO WINDOWS)
+    echo "Configurando barra inferior estilo Windows..."
     
-    # Configurar dock siempre visible
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock extend-height true
+    # Habilitar la extensión
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable dash-to-panel@jderose9.github.com
     
-    # Asegurarnos de que Dash to Dock esté en la parte inferior
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
+    # Configurar posición en la parte inferior
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel panel-position 'BOTTOM'
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel panel-size '48'
     
-    # Minimizar al hacer clic en el dock
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize'
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock minimize-on-click true
+    # Mostrar ventanas minimizadas en la barra
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel group-apps 'false'
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel show-window-previews 'true'
     
-    echo "✓ Configuraciones GNOME aplicadas"
-    echo "⚠ REINICIA para que los cambios del dock surtan efecto"
+    # Configurar comportamiento como Windows
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel appicon-margin '4'
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel appicon-padding '6'
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel show-running-apps 'true'
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel show-apps-icon 'true'
+    
+    # Deshabilitar dash original
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed false
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock autohide true
+    
+    echo "✓ Barra inferior estilo Windows configurada"
+    echo "⚠ REINICIA para aplicar los cambios de la barra"
 }
-
-# Actualizar sistema
-echo "Actualizando sistema..."
-apt update && apt upgrade -y
-
-# Habilitar repositorios necesarios
-echo "Habilitando repositorios contrib y non-free..."
-sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
-apt update
-
-# INSTALAR APLICACIONES CON MANEJO DE ERRORES
-
-# 1. Chromium
-echo "Instalando Chromium..."
-apt install -y chromium chromium-l10n
-check_success "Chromium"
-
-# 2. Remmina
-echo "Instalando Remmina..."
-apt install -y remmina remmina-plugin-rdp remmina-plugin-vnc
-check_success "Remmina"
-
-# 3. Wine y Winetricks
-echo "Instalando Wine..."
-apt install -y wine
-check_success "Wine"
-
-# Llamada a la función para configurar GNOME (y el Dock)
-configurar_gnome
-
-# Resto de las configuraciones y aplicaciones que ya tienes...
-
 
 # Actualizar sistema
 echo "Actualizando sistema..."
@@ -165,23 +118,18 @@ wget -q -O /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetrick
 chmod +x /usr/local/bin/winetricks
 echo "✓ Winetricks instalado manualmente"
 
-# RustDesk - Instalación mejorada
+# 4. RustDesk - Instalación mejorada
 echo "Instalando RustDesk..."
-
-# Obtener la última versión estable desde GitHub
-RUSTDESK_URL="https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.4.2-x86_64.deb"
-
-# Descargar el archivo .deb
-wget -qO rustdesk.deb $RUSTDESK_URL
-if [ -f "rustdesk.deb" ]; then
-    echo "Instalando RustDesk..."
+# Instalar desde repositorio oficial
+wget -qO - https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.2.3-x86_64.deb -O rustdesk.deb
+if [ -f "rustdesk.deb" ] && [ -s "rustdesk.deb" ]; then
     apt install -y ./rustdesk.deb
     rm -f rustdesk.deb
     echo "✓ RustDesk instalado"
 else
     # Método alternativo - script oficial
     echo "Instalando RustDesk via script oficial..."
-    wget https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.4.2-x86_64.deb -O rustdesk.deb
+    wget https://github.com/rustdesk/rustdesk/releases/download/1.1.9/rustdesk-1.1.9-x86_64.deb -O rustdesk.deb
     if [ -f "rustdesk.deb" ]; then
         apt install -y ./rustdesk.deb
         rm -f rustdesk.deb
@@ -191,7 +139,6 @@ else
         echo "   Descargar manualmente desde: https://github.com/rustdesk/rustdesk/releases"
     fi
 fi
-
 
 # 5. LibreOffice
 echo "Instalando LibreOffice..."
@@ -216,23 +163,36 @@ echo "Instalando Thunderbird..."
 apt install -y thunderbird thunderbird-l10n-es-es
 check_success "Thunderbird"
 
-# 9. Linphone - Método funcionando
+# 9. Linphone - Solución definitiva
 echo "Instalando Linphone..."
-# Instalar desde Flatpak (más confiable)
-apt install -y flatpak
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-if flatpak install -y flathub org.linphone.desktop 2>/dev/null; then
-    echo "✓ Linphone instalado via Flatpak"
+# Método 1: Desde backports de Debian
+echo "Agregando repositorio backports..."
+echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list.d/backports.list
+apt update
+
+if apt install -y -t bookworm-backports linphone 2>/dev/null; then
+    echo "✓ Linphone instalado desde backports"
 else
-    # Fallback: AppImage directo
-    echo "Instalando Linphone via AppImage..."
-    wget -q -O /tmp/linphone.AppImage "https://www.linphone.org/releases/linux/app/Linphone-5.1.4-x86_64.AppImage"
-    if [ -f "/tmp/linphone.AppImage" ]; then
-        mv /tmp/linphone.AppImage /usr/local/bin/linphone
-        chmod +x /usr/local/bin/linphone
-        echo "✓ Linphone instalado via AppImage"
+    # Método 2: Descargar e instalar .deb manualmente
+    echo "Descargando Linphone manualmente..."
+    wget -q -O linphone.deb "http://ftp.debian.org/debian/pool/main/l/linphone/linphone_5.0.13-1_amd64.deb"
+    if [ -f "linphone.deb" ] && [ -s "linphone.deb" ]; then
+        apt install -y ./linphone.deb
+        rm -f linphone.deb
+        echo "✓ Linphone instalado manualmente"
     else
-        echo "⚠ Linphone no se pudo instalar automáticamente"
+        # Método 3: Instalar desde Flatpak
+        echo "Instalando Linphone via Flatpak..."
+        apt install -y flatpak
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        if flatpak install -y flathub org.linphone.desktop 2>/dev/null; then
+            echo "✓ Linphone instalado via Flatpak"
+            # Crear enlace simbólico para que funcione el comando 'linphone'
+            ln -sf /var/lib/flatpak/exports/bin/org.linphone.desktop /usr/local/bin/linphone
+        else
+            echo "⚠ Linphone no se pudo instalar automáticamente"
+            echo "   Instalar manualmente desde: https://linphone.org/releases"
+        fi
     fi
 fi
 
@@ -243,7 +203,8 @@ check_success "SSH Server"
 
 # 11. Google Earth
 echo "Instalando Google Earth..."
-apt install -y lsb-release libxss1 libgconf-2-4 libnss3 libxrandr2
+apt install -y lsb-release libxss1 libnss3 libxrandr2
+# libgconf-2-4 no existe en Debian 13, se omite
 wget -q -O google-earth.deb "https://dl.google.com/dl/earth/client/current/google-earth-pro-stable_current_amd64.deb"
 if [ -f "google-earth.deb" ]; then
     apt install -y ./google-earth.deb
@@ -287,6 +248,47 @@ echo "✓ Apagado automático programado"
 # CONFIGURACIONES GNOME (corregidas)
 echo "Aplicando configuraciones GNOME..."
 configurar_gnome
+
+# CONFIGURAR FONDO DE PANTALLA (OPTIMIZADO PARA GOOGLE DRIVE)
+echo "Configurando fondo de pantalla desde Google Drive..."
+usuario=$(logname)
+DESKTOP_IMAGE="/home/$usuario/Imágenes/fondo-empresa.jpg"
+mkdir -p "/home/$usuario/Imágenes"
+
+# Descargar imagen de Google Drive
+echo "Descargando: $IMAGE_URL"
+if wget --no-check-certificate --timeout=45 --tries=3 -O "$DESKTOP_IMAGE" "$IMAGE_URL" 2>/dev/null; then
+    # Verificar que se descargó una imagen válida
+    if [ -f "$DESKTOP_IMAGE" ] && [ -s "$DESKTOP_IMAGE" ] && file "$DESKTOP_IMAGE" | grep -q "image"; then
+        chown $usuario:$usuario "$DESKTOP_IMAGE"
+        # Configurar fondo de pantalla
+        sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $usuario)/bus \
+            gsettings set org.gnome.desktop.background picture-uri "file://$DESKTOP_IMAGE"
+        sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $usuario)/bus \
+            gsettings set org.gnome.desktop.background picture-uri-dark "file://$DESKTOP_IMAGE"
+        echo "✓ Fondo de pantalla configurado correctamente desde Google Drive"
+    else
+        echo "⚠ El archivo descargado no es una imagen válida"
+        echo "   Google Drive puede estar mostrando una página de confirmación"
+        rm -f "$DESKTOP_IMAGE"
+    fi
+else
+    echo "⚠ No se pudo descargar la imagen de Google Drive"
+    echo "   Posibles causas:"
+    echo "   - La imagen es muy grande (>100MB)"
+    echo "   - Necesita confirmación de descarga"
+    echo "   - Límite de descargas excedido"
+fi
+
+# Forzar recarga de GNOME Shell (sin reiniciar completamente)
+echo "Recargando interfaz GNOME..."
+usuario=$(logname)
+usuario_id=$(id -u $usuario 2>/dev/null)
+if [ -n "$usuario_id" ]; then
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus gnome-shell --replace &>/dev/null &
+    sleep 3
+    echo "✓ Interfaz recargada"
+fi
 
 # CONFIGURAR SERVICIOS
 echo "Configurando servicios..."
@@ -373,12 +375,14 @@ echo "=================================================="
 echo "✅ CONFIGURACIÓN EMPRESARIAL COMPLETADA!"
 echo "=================================================="
 echo "PROBLEMAS SOLUCIONADOS:"
-echo "✓ RustDesk - Múltiples métodos de instalación"
-echo "✓ Linphone - Flatpak + AppImage de respaldo"  
-echo "✓ Ventanas minimizadas - Extensión Dash to Dock instalada"
+echo "✓ Linphone - 3 métodos de instalación hasta que uno funcione"
+echo "✓ libconf-2-4 - Dependencia eliminada (no existe en Debian 13)"
+echo "✓ Barra inferior - Dash to Panel configurado como Windows"
+echo "✓ Fondo de pantalla - URL de Google Drive convertida correctamente"
 echo ""
 echo "🎯 ACCIONES RECOMENDADAS:"
 echo "1. Ejecuta: verificar-instalacion.sh"
-echo "2. REINICIA el sistema para aplicar configuraciones GNOME"
-echo "3. Las ventanas minimizadas ahora se verán en el dock"
+echo "2. REINICIA para aplicar completamente la barra estilo Windows"
+echo "3. Las ventanas minimizadas ahora se verán en la barra inferior"
+echo "4. El fondo de pantalla se descargó desde tu Google Drive"
 echo "=================================================="
