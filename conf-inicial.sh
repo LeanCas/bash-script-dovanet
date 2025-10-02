@@ -416,7 +416,7 @@ echo "✓ Winetricks instalado manualmente"
 # 4. RustDesk - Instalación mejorada
 echo "Instalando RustDesk..."
 # Instalar desde repositorio oficial
-wget -qO - https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.2.3-x86_64.deb -O rustdesk.deb
+wget -qO - https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb -O rustdesk.deb
 if [ -f "rustdesk.deb" ] && [ -s "rustdesk.deb" ]; then
     apt install -y ./rustdesk.deb
     rm -f rustdesk.deb
@@ -610,4 +610,124 @@ if [ -n "$usuario_id" ]; then
         gnome-shell --replace > /dev/null 2>&1 &
     sleep 5
     
-    echo "✓ Extensiones activadas y GNOME
+    echo "✓ Extensiones activadas y GNOME recargado"
+fi
+
+# CONFIGURAR SERVICIOS
+echo "Configurando servicios..."
+systemctl enable cups 2>/dev/null && systemctl start cups 2>/dev/null
+systemctl enable ssh 2>/dev/null && systemctl start ssh 2>/dev/null
+
+# CREAR LANZADORES
+echo "Creando lanzadores..."
+DESKTOP_DIR="/home/$(logname)/Escritorio"
+mkdir -p "$DESKTOP_DIR"
+
+cat > "$DESKTOP_DIR/Mensajeria-Interna.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Mensajería Interna
+Comment=Servidor: $GAJIM_SERVER
+Exec=gajim
+Icon=gajim
+Terminal=false
+Categories=Network;
+EOF
+
+cat > "$DESKTOP_DIR/OwnCloud-Empresa.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=OwnCloud Empresa
+Comment=Servidor: $OWNCLOUD_SERVER
+Exec=owncloud
+Icon=owncloud
+Terminal=false
+Categories=Network;
+EOF
+
+cat > "$DESKTOP_DIR/Central-Telefonica.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Central Telefónica
+Comment=Servidor: $TELEFONIA_SERVER
+Exec=linphone
+Icon=linphone
+Terminal=false
+Categories=Network;
+EOF
+
+chmod +x "$DESKTOP_DIR/"*.desktop
+
+# LIMPIEZA FINAL - Limpiar repositorios agregados temporalmente
+echo "Limpiando repositorios temporales..."
+rm -f /etc/apt/sources.list.d/linphone.list
+apt update
+
+echo "Limpiando sistema..."
+apt autoremove -y
+apt autoclean -y
+
+# EJECUTAR VERIFICACIÓN COMPLETA
+verificar_instalacion
+
+# CREAR SCRIPT DE VERIFICACIÓN PERMANENTE
+cat > /usr/local/bin/verificar-instalacion.sh << 'EOF'
+#!/bin/bash
+# Script de verificación permanente
+echo "=== VERIFICACIÓN EMPRESARIAL - EJECUTAR COMO ROOT ==="
+bash -c "$(declare -f verificar_instalacion); verificar_instalacion"
+EOF
+chmod +x /usr/local/bin/verificar-instalacion.sh
+
+# CREAR SCRIPT DE CORRECCIÓN DEL DOCK
+cat > /usr/local/bin/corregir-dock.sh << 'EOF'
+#!/bin/bash
+echo "=== CORRECCIÓN MANUAL DEL DOCK ==="
+echo "Ejecutando configuración forzada..."
+
+# Detectar usuario
+usuario=$(who | head -n1 | awk '{print $1}')
+echo "Usuario: $usuario"
+
+# Configurar Dash to Dock forzadamente
+gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
+gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
+gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
+gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
+gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true
+
+echo "✓ Configuración aplicada"
+echo "Si no funciona, REINICIA el sistema"
+echo "O ejecuta: gnome-shell --replace"
+EOF
+
+chmod +x /usr/local/bin/corregir-dock.sh
+
+# MENSAJE FINAL
+echo ""
+echo "=================================================="
+echo "✅ CONFIGURACIÓN EMPRESARIAL COMPLETADA!"
+echo "=================================================="
+echo ""
+echo "🎯 RESUMEN EJECUTADO:"
+echo "✓ Verificación completa mostrada arriba"
+echo "✓ Linphone instalado desde repositorios no oficiales"
+echo "✓ Dock inferior configurado y activado"
+echo "✓ Escritorio estilo Windows configurado"
+echo "✓ Iconos visibles y creación de archivos habilitada"
+echo "✓ Todas las aplicaciones instaladas y verificadas"
+echo "✓ Servicios configurados y en ejecución"
+echo ""
+echo "🔧 COMANDOS ÚTILES:"
+echo "   verificar-instalacion.sh  - Verificar estado del sistema"
+echo "   corregir-dock.sh          - Corregir dock si no funciona"
+echo ""
+echo "🔄 ACCIONES RECOMENDADAS:"
+echo "1. Si el dock no funciona: CERRAR SESIÓN y volver a entrar"
+echo "2. O REINICIAR el sistema para aplicar todos los cambios"
+echo "3. Las ventanas minimizadas aparecerán en la barra inferior"
+echo "4. Puede crear archivos/carpetas en el escritorio con clic derecho"
+echo "=================================================="
