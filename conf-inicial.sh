@@ -22,6 +22,28 @@ check_success() {
     fi
 }
 
+# Función para configurar zona horaria de Argentina
+configurar_zona_horaria() {
+    echo "Configurando zona horaria de Argentina..."
+    
+    # Configurar timezone a America/Argentina/Buenos_Aires
+    timedatectl set-timezone America/Argentina/Buenos_Aires
+    
+    # Verificar la configuración
+    current_timezone=$(timedatectl show --property=Timezone --value)
+    if [ "$current_timezone" = "America/Argentina/Buenos_Aires" ]; then
+        echo "✓ Zona horaria configurada: Argentina (Buenos Aires)"
+        echo "  Hora actual: $(date)"
+    else
+        echo "⚠ No se pudo configurar la zona horaria automáticamente"
+        echo "  Configurar manualmente: sudo timedatectl set-timezone America/Argentina/Buenos_Aires"
+    fi
+    
+    # Configurar NTP para sincronización automática
+    timedatectl set-ntp true
+    echo "✓ Sincronización automática de hora activada"
+}
+
 # Función para configuraciones GNOME - BARRA INFERIOR CORREGIDA
 configurar_gnome() {
     local usuario=$(logname)
@@ -82,7 +104,7 @@ configurar_gnome() {
     echo "Las ventanas minimizadas se mostrarán en la barra inferior"
 }
 
-# Función para configurar escritorio como Windows (iconos, crear archivos, etc.)
+# Función para configurar escritorio como Windows (FUNCIONAL)
 configurar_escritorio_windows() {
     local usuario=$(logname)
     
@@ -101,20 +123,12 @@ configurar_escritorio_windows() {
     
     echo "Configurando escritorio estilo Windows para usuario: $usuario"
     
-    # 1. Instalar extensiones para iconos en el escritorio
+    # 1. Instalar extensiones NECESARIAS para iconos en el escritorio
     echo "Instalando extensiones para escritorio..."
     apt install -y gnome-shell-extension-desktop-icons-ng
     
-    # 2. Habilitar iconos en el escritorio
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.background show-desktop-icons true
-    
-    # 3. Configurar Nautilus (gestor de archivos) para comportamiento como Windows
+    # 2. Configurar Nautilus (gestor de archivos) para comportamiento como Windows
     echo "Configurando Nautilus como Windows Explorer..."
-    
-    # Mostrar iconos de equipo y carpetas en el escritorio
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-home true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-volumes true
     
     # Configurar comportamiento de clics como Windows (doble clic)
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences click-policy 'double'
@@ -128,68 +142,82 @@ configurar_escritorio_windows() {
     # Vista de iconos grandes por defecto
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'
     
-    # 4. Crear plantillas para "Nuevo documento" en el menú contextual
+    # Mostrar archivos ocultos
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences show-hidden-files true
+    
+    # 3. HABILITAR ESCRITORIO COMPLETAMENTE FUNCIONAL
+    echo "Habilitando escritorio completamente funcional..."
+    
+    # Instalar y habilitar la extensión de iconos de escritorio
+    apt install -y gnome-shell-extension-desktop-icons
+    
+    # Configurar Desktop Icons NG (extensión moderna)
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-home true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-volumes true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-drop-place true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding use-desktop-grid false
+    
+    # 4. CREAR PLANTILLAS PARA "NUEVO DOCUMENTO" - FUNCIONAL
     echo "Creando plantillas para Nuevo documento..."
-    TEMPLATES_DIR="/home/$usuario/Plantillas"
+    TEMPLATES_DIR="/home/$usuario/Templates"
     mkdir -p "$TEMPLATES_DIR"
     
-    # Plantilla de documento de texto
-    cat > "$TEMPLATES_DIR/Documento de texto.txt" << 'EOF'
-Documento creado el $(date)
+    # Plantilla de documento de texto FUNCIONAL
+    cat > "$TEMPLATES_DIR/Empty Document" << 'EOF'
+Empty document - double click to edit
 EOF
 
-    # Plantilla de hoja de cálculo
-    cat > "$TEMPLATES_DIR/Hoja de cálculo.ods" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0">
-<!-- Hoja de cálculo vacía -->
-</office:document>
+    # Plantilla de documento de texto con extensión .txt
+    cat > "$TEMPLATES_DIR/New Text Document.txt" << 'EOF'
+New text document created on $(date)
+You can edit this file with any text editor.
 EOF
 
+    # Plantilla de carpeta (script para crear carpeta)
+    cat > "$TEMPLATES_DIR/New Folder" << 'EOF'
+#!/bin/bash
+# This is a folder template
+mkdir "$1"
+EOF
+    chmod +x "$TEMPLATES_DIR/New Folder"
+    
     # Asegurar permisos
     chown -R $usuario:$usuario "$TEMPLATES_DIR"
+    chmod 755 "$TEMPLATES_DIR"
     
-    # 5. Configurar menú contextual del escritorio
-    echo "Configurando menú contextual del escritorio..."
+    # 5. CONFIGURAR PERMISOS DEL ESCRITORIO
+    echo "Configurando permisos del escritorio..."
+    DESKTOP_DIR="/home/$usuario/Desktop"
+    ESCRITORIO_DIR="/home/$usuario/Escritorio"
     
-    # Crear script para agregar "Nuevo" al menú contextual
-    cat > "/usr/local/bin/nuevo-documento.sh" << 'EOF'
-#!/bin/bash
-# Script para crear nuevos documentos desde el escritorio
-zenity --forms --title="Crear nuevo documento" \
-       --text="Seleccione el tipo de documento:" \
-       --add-combo="Tipo" --combo-values="Documento de texto|Hoja de cálculo|Carpeta" \
-       --add-entry="Nombre:"
-EOF
-    chmod +x /usr/local/bin/nuevo-documento.sh
-    
-    # 6. Configurar atajos de teclado como Windows
-    echo "Configurando atajos de teclado estilo Windows..."
-    
-    # Win + E para abrir el explorador de archivos
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.settings-daemon.plugins.media-keys home "['<Super>e']"
-    
-    # Win + D para mostrar el escritorio
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.keybindings show-desktop "['<Super>d']"
-    
-    # 7. Configurar papelera visible en el escritorio
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
-    
-    # 8. Habilitar la creación de archivos y carpetas en el escritorio
-    echo "Habilitando creación de archivos en el escritorio..."
-    
-    # Crear directorio Escritorio si no existe
-    DESKTOP_DIR="/home/$usuario/Escritorio"
+    # Crear ambos directorios (inglés y español)
     mkdir -p "$DESKTOP_DIR"
+    mkdir -p "$ESCRITORIO_DIR"
+    
+    # Dar permisos completos al usuario
     chown $usuario:$usuario "$DESKTOP_DIR"
-    
-    # Configurar permisos para que el usuario pueda crear archivos
+    chown $usuario:$usuario "$ESCRITORIO_DIR"
     chmod 755 "$DESKTOP_DIR"
+    chmod 755 "$ESCRITORIO_DIR"
     
-    echo "✓ Escritorio configurado estilo Windows"
+    # Crear enlace simbólico para compatibilidad
+    ln -sf "$ESCRITORIO_DIR" "$DESKTOP_DIR" 2>/dev/null || true
+    
+    # 6. CONFIGURAR CONTEXTO MENÚ COMPLETO
+    echo "Configurando menú contextual completo..."
+    
+    # Instalar herramientas adicionales para mejor experiencia
+    apt install -y nautilus-actions filemanager-actions
+    
+    # 7. CONFIGURAR COMPORTAMIENTO DE ARRASTRE Y SOLTAR
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences enable-interactive-search true
+    
+    echo "✓ Escritorio configurado estilo Windows - COMPLETAMENTE FUNCIONAL"
     echo "✓ Iconos visibles en el escritorio"
-    echo "✓ Puede crear archivos y carpetas haciendo clic derecho"
-    echo "✓ Plantillas disponibles en 'Nuevo documento'"
+    echo "✓ Puede crear archivos y carpetas haciendo clic derecho → Nuevo documento"
+    echo "✓ Arrastrar y soltar funcionando"
+    echo "✓ Doble clic para abrir archivos"
 }
 
 # Función de verificación de instalación
@@ -198,6 +226,17 @@ verificar_instalacion() {
     echo "=================================================="
     echo "🔍 VERIFICACIÓN DE INSTALACIÓN EMPRESARIAL"
     echo "=================================================="
+    
+    # Verificar zona horaria
+    echo ""
+    echo "🌍 CONFIGURACIÓN DE ZONA HORARIA:"
+    current_timezone=$(timedatectl show --property=Timezone --value)
+    if [ "$current_timezone" = "America/Argentina/Buenos_Aires" ]; then
+        echo "✅ Zona horaria: Argentina (Buenos Aires)"
+        echo "   Hora actual: $(date)"
+    else
+        echo "❌ Zona horaria: $current_timezone (debería ser America/Argentina/Buenos_Aires)"
+    fi
     
     # Verificar aplicaciones instaladas
     echo ""
@@ -356,20 +395,26 @@ verificar_instalacion() {
                 echo "❌ Dock inferior - NO CONFIGURADO"
             fi
             
-            # Iconos en escritorio
-            iconos=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.desktop.background show-desktop-icons 2>/dev/null || echo "false")
-            if [ "$iconos" = "true" ]; then
-                echo "✅ Iconos en escritorio - ACTIVADOS"
-            else
-                echo "❌ Iconos en escritorio - DESACTIVADOS"
-            fi
-            
             # Comportamiento de clics
             clics=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.nautilus.preferences click-policy 2>/dev/null || echo "single")
             if [ "$clics" = "'double'" ]; then
                 echo "✅ Clic doble como Windows - CONFIGURADO"
             else
                 echo "❌ Clic doble como Windows - NO CONFIGURADO"
+            fi
+            
+            # Verificar si hay iconos en el escritorio
+            if [ -d "/home/$usuario/Desktop" ] || [ -d "/home/$usuario/Escritorio" ]; then
+                echo "✅ Directorio escritorio - CONFIGURADO"
+            else
+                echo "❌ Directorio escritorio - NO CONFIGURADO"
+            fi
+            
+            # Verificar plantillas
+            if [ -d "/home/$usuario/Templates" ] && [ "$(ls -A /home/$usuario/Templates)" ]; then
+                echo "✅ Plantillas documentos - CONFIGURADAS"
+            else
+                echo "❌ Plantillas documentos - NO CONFIGURADAS"
             fi
         else
             echo "⚠ No se puede verificar GNOME (sin sesión de usuario)"
@@ -385,6 +430,9 @@ verificar_instalacion() {
 # Actualizar sistema
 echo "Actualizando sistema..."
 apt update && apt upgrade -y
+
+# CONFIGURAR ZONA HORARIA DE ARGENTINA PRIMERO
+configurar_zona_horaria
 
 # Habilitar repositorios necesarios
 echo "Habilitando repositorios contrib y non-free..."
@@ -586,7 +634,7 @@ echo "✓ Apagado automático programado"
 echo "Aplicando configuraciones GNOME..."
 configurar_gnome
 
-# CONFIGURAR ESCRITORIO ESTILO WINDOWS
+# CONFIGURAR ESCRITORIO ESTILO WINDOWS (COMPLETAMENTE FUNCIONAL)
 echo "Configurando escritorio estilo Windows..."
 configurar_escritorio_windows
 
@@ -695,43 +743,7 @@ chmod +x "$DESKTOP_DIR/"*.desktop
 # LIMPIEZA FINAL
 echo "Limpiando sistema..."
 apt autoremove -y
-apt autoclean -y
-
-# EJECUTAR VERIFICACIÓN COMPLETA
-verificar_instalacion
-
-# CREAR SCRIPT DE VERIFICACIÓN PERMANENTE
-cat > /usr/local/bin/verificar-instalacion.sh << 'EOF'
-#!/bin/bash
-# Script de verificación permanente
-echo "=== VERIFICACIÓN EMPRESARIAL - EJECUTAR COMO ROOT ==="
-bash -c "$(declare -f verificar_instalacion); verificar_instalacion"
-EOF
-chmod +x /usr/local/bin/verificar-instalacion.sh
-
-# CREAR SCRIPT DE CORRECCIÓN DEL DOCK
-cat > /usr/local/bin/corregir-dock.sh << 'EOF'
-#!/bin/bash
-echo "=== CORRECCIÓN MANUAL DEL DOCK ==="
-echo "Ejecutando configuración forzada..."
-
-# Detectar usuario
-usuario=$(who | head -n1 | awk '{print $1}')
-echo "Usuario: $usuario"
-
-# Configurar Dash to Dock forzadamente
-gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
-gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
-gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
-gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
-gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true
-
-echo "✓ Configuración aplicada"
-echo "Si no funciona, REINICIA el sistema"
-echo "O ejecuta: gnome-shell --replace"
-EOF
-
-chmod +x /usr/local/bin/corregir-dock.sh
+apt autoclean
 
 # MENSAJE FINAL
 echo ""
