@@ -474,8 +474,7 @@ sudo apt install -y \
     qt6-l10n-tools qt6-svg-dev \
     qml6-module-qtquick qml6-module-qtquick-controls \
     qml6-module-qtquick-dialogs qml6-module-qtquick-layouts \
-    qml6-module-qtquick-templates qml6-module-qtgraphicaleffects \
-    qml6-module-qtwebsockets qml6-module-qt-labs-platform
+    qml6-module-qtquick-templates qml6-module-qtwebsockets
 
 echo "=== Clonando repositorio de Linphone Desktop ==="
 mkdir -p ~/src && cd ~/src
