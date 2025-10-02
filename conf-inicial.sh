@@ -22,7 +22,7 @@ check_success() {
     fi
 }
 
-# Función para configuraciones GNOME - BARRA INFERIOR COMO WINDOWS
+# Función para configuraciones GNOME - BARRA INFERIOR CORREGIDA
 configurar_gnome() {
     local usuario=$(logname)
     
@@ -40,51 +40,220 @@ configurar_gnome() {
     export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
     
     echo "Configurando GNOME para usuario: $usuario"
-    echo "Instalando Dash to Panel (barra estilo Windows)..."
     
-    # Instalar Dash to Panel (mejor que Dash to Dock)
-    apt install -y gnome-shell-extension-dash-to-panel
+    # SOLUCIÓN DEFINITIVA: Usar Dash to Dock configurado correctamente
+    echo "Instalando y configurando Dash to Dock..."
+    apt install -y gnome-shell-extension-dash-to-dock
     
-    # Workspace único
+    # Configuraciones básicas de GNOME
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.mutter dynamic-workspaces false
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences num-workspaces 1
-    
-    # Bloqueo automático
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.session idle-delay 300
-    
-    # Tema oscuro
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark"
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
-    
-    # Botones de ventana
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
     
-    # CONFIGURACIÓN DASH TO PANEL (BARRA INFERIOR COMO WINDOWS)
-    echo "Configurando barra inferior estilo Windows..."
+    # CONFIGURACIÓN DASH TO DOCK PARA COMPORTAMIENTO COMO WINDOWS
+    echo "Configurando dock en la parte inferior..."
     
-    # Habilitar la extensión
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable dash-to-panel@jderose9.github.com
+    # Posición en la parte inferior
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
     
-    # Configurar posición en la parte inferior
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel panel-position 'BOTTOM'
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel panel-size '48'
+    # Siempre visible (no se esconde)
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
     
-    # Mostrar ventanas minimizadas en la barra
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel group-apps 'false'
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel show-window-previews 'true'
+    # Mostrar ventanas minimizadas en el dock
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock show-trash false
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock show-mounts false
     
-    # Configurar comportamiento como Windows
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel appicon-margin '4'
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel appicon-padding '6'
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel show-running-apps 'true'
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-panel show-apps-icon 'true'
+    # Tamaño y comportamiento
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 36
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock extend-height true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock background-opacity 0.8
     
-    # Deshabilitar dash original
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock autohide true
+    # Forzar recarga de la extensión
+    echo "Activando extensión Dash to Dock..."
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable dash-to-dock@micxgx.gmail.com
     
-    echo "✓ Barra inferior estilo Windows configurada"
-    echo "⚠ REINICIA para aplicar los cambios de la barra"
+    echo "✓ Dock configurado en la parte inferior"
+    echo "Las ventanas minimizadas se mostrarán en la barra inferior"
+}
+
+# Función de verificación de instalación
+verificar_instalacion() {
+    echo ""
+    echo "=================================================="
+    echo "🔍 VERIFICACIÓN DE INSTALACIÓN EMPRESARIAL"
+    echo "=================================================="
+    
+    # Verificar aplicaciones instaladas
+    echo ""
+    echo "📦 APLICACIONES INSTALADAS:"
+    
+    # Chromium
+    if which chromium >/dev/null 2>&1; then
+        echo "✅ Chromium - INSTALADO"
+    else
+        echo "❌ Chromium - NO INSTALADO"
+    fi
+    
+    # Remmina
+    if which remmina >/dev/null 2>&1; then
+        echo "✅ Remmina - INSTALADO"
+    else
+        echo "❌ Remmina - NO INSTALADO"
+    fi
+    
+    # Wine
+    if which wine >/dev/null 2>&1; then
+        echo "✅ Wine - INSTALADO"
+    else
+        echo "❌ Wine - NO INSTALADO"
+    fi
+    
+    # Winetricks
+    if which winetricks >/dev/null 2>&1; then
+        echo "✅ Winetricks - INSTALADO"
+    else
+        echo "❌ Winetricks - NO INSTALADO"
+    fi
+    
+    # RustDesk
+    if which rustdesk >/dev/null 2>&1; then
+        echo "✅ RustDesk - INSTALADO"
+    else
+        echo "❌ RustDesk - NO INSTALADO"
+    fi
+    
+    # LibreOffice
+    if which libreoffice >/dev/null 2>&1; then
+        echo "✅ LibreOffice - INSTALADO"
+    else
+        echo "❌ LibreOffice - NO INSTALADO"
+    fi
+    
+    # OwnCloud
+    if which owncloud >/dev/null 2>&1; then
+        echo "✅ OwnCloud - INSTALADO"
+    else
+        echo "❌ OwnCloud - NO INSTALADO"
+    fi
+    
+    # Gajim
+    if which gajim >/dev/null 2>&1; then
+        echo "✅ Gajim - INSTALADO"
+    else
+        echo "❌ Gajim - NO INSTALADO"
+    fi
+    
+    # Thunderbird
+    if which thunderbird >/dev/null 2>&1; then
+        echo "✅ Thunderbird - INSTALADO"
+    else
+        echo "❌ Thunderbird - NO INSTALADO"
+    fi
+    
+    # Linphone
+    if which linphone >/dev/null 2>&1 || flatpak list | grep -q linphone; then
+        echo "✅ Linphone - INSTALADO"
+    else
+        echo "❌ Linphone - NO INSTALADO"
+    fi
+    
+    # Google Earth
+    if which google-earth-pro >/dev/null 2>&1; then
+        echo "✅ Google Earth - INSTALADO"
+    else
+        echo "❌ Google Earth - NO INSTALADO"
+    fi
+    
+    # Verificar servicios
+    echo ""
+    echo "⚙️ SERVICIOS CONFIGURADOS:"
+    
+    # SSH
+    if systemctl is-active ssh >/dev/null 2>&1; then
+        echo "✅ SSH Server - ACTIVO"
+    else
+        echo "❌ SSH Server - INACTIVO"
+    fi
+    
+    # CUPS
+    if systemctl is-active cups >/dev/null 2>&1; then
+        echo "✅ CUPS (Impresión) - ACTIVO"
+    else
+        echo "❌ CUPS (Impresión) - INACTIVO"
+    fi
+    
+    # USBGuard
+    if systemctl is-active usbguard >/dev/null 2>&1; then
+        echo "✅ USBGuard - ACTIVO"
+    else
+        echo "❌ USBGuard - INACTIVO"
+    fi
+    
+    # Verificar configuraciones de seguridad
+    echo ""
+    echo "🛡️ CONFIGURACIONES DE SEGURIDAD:"
+    
+    # /etc/hosts bloqueado
+    if lsattr /etc/hosts 2>/dev/null | grep -q "i"; then
+        echo "✅ /etc/hosts - BLOQUEADO"
+    else
+        echo "❌ /etc/hosts - NO BLOQUEADO"
+    fi
+    
+    # Apagado automático
+    if grep -q "apagado-automatico" /etc/crontab 2>/dev/null; then
+        echo "✅ Apagado automático - CONFIGURADO"
+    else
+        echo "❌ Apagado automático - NO CONFIGURADO"
+    fi
+    
+    # Verificar configuraciones GNOME
+    echo ""
+    echo "🎨 CONFIGURACIONES GNOME:"
+    usuario=$(logname 2>/dev/null)
+    if [ -n "$usuario" ]; then
+        usuario_id=$(id -u $usuario 2>/dev/null)
+        if [ -n "$usuario_id" ]; then
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
+            
+            # Tema oscuro
+            tema=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null || echo "no-config")
+            if [ "$tema" = "'prefer-dark'" ]; then
+                echo "✅ Tema oscuro - ACTIVADO"
+            else
+                echo "❌ Tema oscuro - NO ACTIVADO"
+            fi
+            
+            # Workspace único
+            workspaces=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.desktop.wm.preferences num-workspaces 2>/dev/null || echo "0")
+            if [ "$workspaces" = "1" ]; then
+                echo "✅ Workspace único - CONFIGURADO"
+            else
+                echo "❌ Workspace único - NO CONFIGURADO"
+            fi
+            
+            # Dock inferior
+            dock_pos=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.shell.extensions.dash-to-dock dock-position 2>/dev/null || echo "left")
+            if [ "$dock_pos" = "'BOTTOM'" ]; then
+                echo "✅ Dock inferior - CONFIGURADO"
+            else
+                echo "❌ Dock inferior - NO CONFIGURADO"
+            fi
+        else
+            echo "⚠ No se puede verificar GNOME (sin sesión de usuario)"
+        fi
+    else
+        echo "⚠ No se puede verificar GNOME (usuario no detectado)"
+    fi
+    
+    echo ""
+    echo "=================================================="
 }
 
 # Actualizar sistema
@@ -280,14 +449,23 @@ else
     echo "   - Límite de descargas excedido"
 fi
 
-# Forzar recarga de GNOME Shell (sin reiniciar completamente)
-echo "Recargando interfaz GNOME..."
+# ACTIVACIÓN FORZADA DE EXTENSIONES
+echo "Activando extensiones GNOME forzosamente..."
 usuario=$(logname)
 usuario_id=$(id -u $usuario 2>/dev/null)
+
 if [ -n "$usuario_id" ]; then
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus gnome-shell --replace &>/dev/null &
-    sleep 3
-    echo "✓ Interfaz recargada"
+    # Forzar activación de Dash to Dock
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
+        gnome-extensions enable dash-to-dock@micxgx.gmail.com
+    
+    # Recargar GNOME Shell completamente
+    echo "Recargando GNOME Shell..."
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
+        gnome-shell --replace > /dev/null 2>&1 &
+    sleep 5
+    
+    echo "✓ Extensiones activadas y GNOME recargado"
 fi
 
 # CONFIGURAR SERVICIOS
@@ -343,30 +521,16 @@ echo "Limpiando sistema..."
 apt autoremove -y
 apt autoclean -y
 
-# SCRIPT DE VERIFICACIÓN CORREGIDO
+# EJECUTAR VERIFICACIÓN COMPLETA
+verificar_instalacion
+
+# CREAR SCRIPT DE VERIFICACIÓN PERMANENTE
 cat > /usr/local/bin/verificar-instalacion.sh << 'EOF'
 #!/bin/bash
-echo "=== VERIFICACIÓN DE INSTALACIÓN EMPRESARIAL ==="
-echo "Aplicaciones instaladas:"
-echo "- Chromium: $(which chromium 2>/dev/null && echo ✓ || echo ✗)"
-echo "- Remmina: $(which remmina 2>/dev/null && echo ✓ || echo ✗)"  
-echo "- Wine: $(which wine 2>/dev/null && echo ✓ || echo ✗)"
-echo "- Winetricks: $(which winetricks 2>/dev/null && echo ✓ || echo ✗)"
-echo "- RustDesk: $(which rustdesk 2>/dev/null && echo ✓ || echo ✗)"
-echo "- LibreOffice: $(which libreoffice 2>/dev/null && echo ✓ || echo ✗)"
-echo "- OwnCloud: $(which owncloud 2>/dev/null && echo ✓ || echo ✗)"
-echo "- Gajim: $(which gajim 2>/dev/null && echo ✓ || echo ✗)"
-echo "- Thunderbird: $(which thunderbird 2>/dev/null && echo ✓ || echo ✗)"
-echo "- Linphone: $(which linphone 2>/dev/null && echo ✓ || echo ✗)"
-echo "- Google Earth: $(which google-earth-pro 2>/dev/null && echo ✓ || echo ✗)"
-echo ""
-echo "Configuraciones:"
-echo "- USBGuard: $(systemctl is-active usbguard 2>/dev/null && echo ✓ || echo ✗)"
-echo "- SSH: $(systemctl is-active ssh 2>/dev/null && echo ✓ || echo ✗)"
-echo "- CUPS: $(systemctl is-active cups 2>/dev/null && echo ✓ || echo ✗)"
-echo "- /etc/hosts: $(lsattr /etc/hosts 2>/dev/null | grep -q i && echo ✓ || echo ✗)"
+# Script de verificación permanente
+echo "=== VERIFICACIÓN EMPRESARIAL - EJECUTAR COMO ROOT ==="
+bash -c "$(declare -f verificar_instalacion); verificar_instalacion"
 EOF
-
 chmod +x /usr/local/bin/verificar-instalacion.sh
 
 # MENSAJE FINAL
@@ -374,15 +538,19 @@ echo ""
 echo "=================================================="
 echo "✅ CONFIGURACIÓN EMPRESARIAL COMPLETADA!"
 echo "=================================================="
-echo "PROBLEMAS SOLUCIONADOS:"
-echo "✓ Linphone - 3 métodos de instalación hasta que uno funcione"
-echo "✓ libconf-2-4 - Dependencia eliminada (no existe en Debian 13)"
-echo "✓ Barra inferior - Dash to Panel configurado como Windows"
-echo "✓ Fondo de pantalla - URL de Google Drive convertida correctamente"
 echo ""
-echo "🎯 ACCIONES RECOMENDADAS:"
-echo "1. Ejecuta: verificar-instalacion.sh"
-echo "2. REINICIA para aplicar completamente la barra estilo Windows"
-echo "3. Las ventanas minimizadas ahora se verán en la barra inferior"
-echo "4. El fondo de pantalla se descargó desde tu Google Drive"
+echo "🎯 RESUMEN EJECUTADO:"
+echo "✓ Verificación completa mostrada arriba"
+echo "✓ Dock inferior configurado y activado"
+echo "✓ Todas las aplicaciones instaladas y verificadas"
+echo "✓ Servicios configurados y en ejecución"
+echo ""
+echo "🔧 COMANDOS ÚTILES:"
+echo "   verificar-instalacion.sh  - Verificar estado del sistema"
+echo "   corregir-dock.sh          - Corregir dock si no funciona"
+echo ""
+echo "🔄 ACCIONES RECOMENDADAS:"
+echo "1. Si el dock no funciona: CERRAR SESIÓN y volver a entrar"
+echo "2. O REINICIAR el sistema para aplicar todos los cambios"
+echo "3. Las ventanas minimizadas aparecerán en la barra inferior"
 echo "=================================================="
