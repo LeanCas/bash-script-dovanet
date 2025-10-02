@@ -458,120 +458,54 @@ echo "Instalando Thunderbird..."
 apt install -y thunderbird thunderbird-l10n-es-es
 check_success "Thunderbird"
 
-# 9. Linphone - COMPILACIÓN DESDE CÓDIGO FUENTE
-echo "Instalando Linphone compilando desde código fuente..."
-echo "Este proceso puede tomar varios minutos..."
+set -e
 
-# Instalar dependencias de compilación
-echo "Instalando dependencias de compilación..."
-apt install -y \
-    build-essential \
-    cmake \
-    git \
-    pkg-config \
-    libtool \
-    automake \
-    autoconf \
-    yasm \
-    nasm \
-    python3 \
-    python3-pip \
-    intltool \
-    libsqlite3-dev \
-    libxml2-dev \
-    libxslt1-dev \
-    libssl-dev \
-    libsrtp2-dev \
-    libmicrohttpd-dev \
-    libjansson-dev \
-    libnice-dev \
-    libopus-dev \
-    libvpx-dev \
-    libx264-dev \
-    libv4l-dev \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswscale-dev \
-    libswresample-dev \
-    libmediastreamer-dev \
-    liblinphone-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    libpq-dev \
-    libxml2-dev \
-    libxslt1-dev \
-    libffi-dev \
-    liblzma-dev
+echo "=== Instalando dependencias de compilación ==="
+sudo apt update
+sudo apt install -y \
+    git build-essential cmake ninja-build pkg-config \
+    libx11-dev libxext-dev libxrender-dev libxinerama-dev libxtst-dev \
+    libxrandr-dev libxi-dev libpulse-dev libasound2-dev \
+    libsqlite3-dev libssl-dev libvpx-dev libz-dev libspeex-dev \
+    libspeexdsp-dev libopus-dev libavcodec-dev libavutil-dev \
+    libswscale-dev libswresample-dev libxml2-dev \
+    qtbase5-dev qtdeclarative5-dev qml-module-qtquick-controls2 \
+    qml-module-qtquick-layouts qml-module-qtquick-dialogs \
+    qml-module-qtquick2 qml-module-qtgraphicaleffects \
+    qml-module-qtwebsockets qml-module-qt-labs-platform \
+    libqt5svg5-dev
 
-# Crear directorio de trabajo
-mkdir -p /tmp/linphone-build
-cd /tmp/linphone-build
-
-# Método 1: Clonar y compilar desde el repositorio oficial
-echo "Clonando código fuente de Linphone..."
-git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git
+echo "=== Clonando repositorio de Linphone ==="
+mkdir -p ~/src && cd ~/src
+if [ ! -d "linphone-desktop" ]; then
+    git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git
+fi
 cd linphone-desktop
 
-# Configurar y compilar
-echo "Configurando y compilando Linphone (esto puede tomar 15-30 minutos)..."
-mkdir -p build
-cd build
+echo "=== Preparando compilación ==="
+mkdir -p build && cd build
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-# Configurar con opciones mínimas para mayor compatibilidad
-cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DENABLE_VIDEO=OFF \
-    -DENABLE_UNIT_TESTS=OFF \
-    -DENABLE_TOOLS=OFF \
-    -DENABLE_NON_FREE_CODECS=ON
+echo "=== Compilando Linphone ==="
+ninja
 
-# Compilar con todos los núcleos disponibles
-make -j$(nproc)
+echo "=== Instalando en el sistema ==="
+sudo ninja install
 
-# Instalar
-make install
-
-if which linphone >/dev/null 2>&1; then
-    echo "✓ Linphone compilado e instalado correctamente desde fuente"
-    
-    # Crear lanzador de escritorio
-    cat > /usr/share/applications/linphone.desktop << EOF
+echo "=== Creando acceso directo ==="
+sudo tee /usr/share/applications/linphone.desktop > /dev/null <<EOL
 [Desktop Entry]
-Version=1.0
-Type=Application
 Name=Linphone
-GenericName=VoIP Phone
-Comment=Linphone VoIP softphone
-Exec=linphone
+Comment=VoIP SIP Client
+Exec=/usr/local/bin/linphone
 Icon=linphone
 Terminal=false
+Type=Application
 Categories=Network;Telephony;
-Keywords=voip;sip;phone;
-EOF
-    
-    # Crear enlace simbólico en PATH
-    ln -sf /usr/local/bin/linphone /usr/bin/linphone
-else
-    echo "❌ Falló la compilación de Linphone"
-    echo "Intentando método alternativo..."
-    
-    # Método alternativo: usar el paquete de Debian testing forzado
-    cd /tmp/linphone-build
-    wget -q -O linphone.deb "http://ftp.debian.org/debian/pool/main/l/linphone/linphone_4.4.6-2_amd64.deb"
-    if [ -f "linphone.deb" ]; then
-        apt install -y ./linphone.deb
-        echo "✓ Linphone instalado desde paquete antiguo pero funcional"
-    else
-        echo "⚠ Linphone no se pudo instalar"
-        echo "   Considere usar una versión anterior o contactar al administrador"
-    fi
-fi
+EOL
 
-# Limpiar archivos temporales
-cd /
-rm -rf /tmp/linphone-build
+echo "=== Instalación completada ==="
+echo "Podés abrir Linphone desde el menú de aplicaciones o ejecutando: linphone"
 
 # 10. SSH Server
 echo "Instalando SSH Server..."
