@@ -471,10 +471,11 @@ sudo apt install -y \
     libspeexdsp-dev libopus-dev libavcodec-dev libavutil-dev \
     libswscale-dev libswresample-dev libxml2-dev \
     qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools \
-    qt6-l10n-tools qt6-svg-dev \
+    qt6-l10n-tools qt6-svg-dev qt6-core5compat-dev \
     qml6-module-qtquick qml6-module-qtquick-controls \
     qml6-module-qtquick-dialogs qml6-module-qtquick-layouts \
     qml6-module-qtquick-templates qml6-module-qtwebsockets
+
 
 echo "=== Clonando repositorio de Linphone Desktop ==="
 mkdir -p ~/src && cd ~/src
