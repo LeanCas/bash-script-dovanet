@@ -82,6 +82,116 @@ configurar_gnome() {
     echo "Las ventanas minimizadas se mostrarán en la barra inferior"
 }
 
+# Función para configurar escritorio como Windows (iconos, crear archivos, etc.)
+configurar_escritorio_windows() {
+    local usuario=$(logname)
+    
+    if [ -z "$usuario" ]; then
+        echo "⚠ No se puede detectar usuario para configurar escritorio"
+        return 1
+    fi
+    
+    local usuario_id=$(id -u $usuario 2>/dev/null)
+    if [ -z "$usuario_id" ]; then
+        echo "⚠ No se puede obtener ID del usuario $usuario"
+        return 1
+    fi
+    
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
+    
+    echo "Configurando escritorio estilo Windows para usuario: $usuario"
+    
+    # 1. Instalar extensiones para iconos en el escritorio
+    echo "Instalando extensiones para escritorio..."
+    apt install -y gnome-shell-extension-desktop-icons-ng
+    
+    # 2. Habilitar iconos en el escritorio
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.background show-desktop-icons true
+    
+    # 3. Configurar Nautilus (gestor de archivos) para comportamiento como Windows
+    echo "Configurando Nautilus como Windows Explorer..."
+    
+    # Mostrar iconos de equipo y carpetas en el escritorio
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-home true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-volumes true
+    
+    # Configurar comportamiento de clics como Windows (doble clic)
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences click-policy 'double'
+    
+    # Mostrar barra de direcciones completa
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences always-use-location-entry true
+    
+    # Ordenar por nombre por defecto
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-sort-order 'name'
+    
+    # Vista de iconos grandes por defecto
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'
+    
+    # 4. Crear plantillas para "Nuevo documento" en el menú contextual
+    echo "Creando plantillas para Nuevo documento..."
+    TEMPLATES_DIR="/home/$usuario/Plantillas"
+    mkdir -p "$TEMPLATES_DIR"
+    
+    # Plantilla de documento de texto
+    cat > "$TEMPLATES_DIR/Documento de texto.txt" << 'EOF'
+Documento creado el $(date)
+EOF
+
+    # Plantilla de hoja de cálculo
+    cat > "$TEMPLATES_DIR/Hoja de cálculo.ods" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0">
+<!-- Hoja de cálculo vacía -->
+</office:document>
+EOF
+
+    # Asegurar permisos
+    chown -R $usuario:$usuario "$TEMPLATES_DIR"
+    
+    # 5. Configurar menú contextual del escritorio
+    echo "Configurando menú contextual del escritorio..."
+    
+    # Crear script para agregar "Nuevo" al menú contextual
+    cat > "/usr/local/bin/nuevo-documento.sh" << 'EOF'
+#!/bin/bash
+# Script para crear nuevos documentos desde el escritorio
+zenity --forms --title="Crear nuevo documento" \
+       --text="Seleccione el tipo de documento:" \
+       --add-combo="Tipo" --combo-values="Documento de texto|Hoja de cálculo|Carpeta" \
+       --add-entry="Nombre:"
+EOF
+    chmod +x /usr/local/bin/nuevo-documento.sh
+    
+    # 6. Configurar atajos de teclado como Windows
+    echo "Configurando atajos de teclado estilo Windows..."
+    
+    # Win + E para abrir el explorador de archivos
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.settings-daemon.plugins.media-keys home "['<Super>e']"
+    
+    # Win + D para mostrar el escritorio
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.keybindings show-desktop "['<Super>d']"
+    
+    # 7. Configurar papelera visible en el escritorio
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
+    
+    # 8. Habilitar la creación de archivos y carpetas en el escritorio
+    echo "Habilitando creación de archivos en el escritorio..."
+    
+    # Crear directorio Escritorio si no existe
+    DESKTOP_DIR="/home/$usuario/Escritorio"
+    mkdir -p "$DESKTOP_DIR"
+    chown $usuario:$usuario "$DESKTOP_DIR"
+    
+    # Configurar permisos para que el usuario pueda crear archivos
+    chmod 755 "$DESKTOP_DIR"
+    
+    echo "✓ Escritorio configurado estilo Windows"
+    echo "✓ Iconos visibles en el escritorio"
+    echo "✓ Puede crear archivos y carpetas haciendo clic derecho"
+    echo "✓ Plantillas disponibles en 'Nuevo documento'"
+}
+
 # Función de verificación de instalación
 verificar_instalacion() {
     echo ""
@@ -244,6 +354,22 @@ verificar_instalacion() {
                 echo "✅ Dock inferior - CONFIGURADO"
             else
                 echo "❌ Dock inferior - NO CONFIGURADO"
+            fi
+            
+            # Iconos en escritorio
+            iconos=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.desktop.background show-desktop-icons 2>/dev/null || echo "false")
+            if [ "$iconos" = "true" ]; then
+                echo "✅ Iconos en escritorio - ACTIVADOS"
+            else
+                echo "❌ Iconos en escritorio - DESACTIVADOS"
+            fi
+            
+            # Comportamiento de clics
+            clics=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.nautilus.preferences click-policy 2>/dev/null || echo "single")
+            if [ "$clics" = "'double'" ]; then
+                echo "✅ Clic doble como Windows - CONFIGURADO"
+            else
+                echo "❌ Clic doble como Windows - NO CONFIGURADO"
             fi
         else
             echo "⚠ No se puede verificar GNOME (sin sesión de usuario)"
@@ -429,6 +555,10 @@ echo "✓ Apagado automático programado"
 echo "Aplicando configuraciones GNOME..."
 configurar_gnome
 
+# CONFIGURAR ESCRITORIO ESTILO WINDOWS
+echo "Configurando escritorio estilo Windows..."
+configurar_escritorio_windows
+
 # CONFIGURAR FONDO DE PANTALLA (OPTIMIZADO PARA GOOGLE DRIVE)
 echo "Configurando fondo de pantalla desde Google Drive..."
 usuario=$(logname)
@@ -470,127 +600,14 @@ if [ -n "$usuario_id" ]; then
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
         gnome-extensions enable dash-to-dock@micxgx.gmail.com
     
+    # Forzar activación de iconos en escritorio
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
+        gnome-extensions enable desktop-icons@csoriano
+    
     # Recargar GNOME Shell completamente
     echo "Recargando GNOME Shell..."
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
         gnome-shell --replace > /dev/null 2>&1 &
     sleep 5
     
-    echo "✓ Extensiones activadas y GNOME recargado"
-fi
-
-# CONFIGURAR SERVICIOS
-echo "Configurando servicios..."
-systemctl enable cups 2>/dev/null && systemctl start cups 2>/dev/null
-systemctl enable ssh 2>/dev/null && systemctl start ssh 2>/dev/null
-
-# CREAR LANZADORES
-echo "Creando lanzadores..."
-DESKTOP_DIR="/home/$(logname)/Escritorio"
-mkdir -p "$DESKTOP_DIR"
-
-cat > "$DESKTOP_DIR/Mensajeria-Interna.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Mensajería Interna
-Comment=Servidor: $GAJIM_SERVER
-Exec=gajim
-Icon=gajim
-Terminal=false
-Categories=Network;
-EOF
-
-cat > "$DESKTOP_DIR/OwnCloud-Empresa.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=OwnCloud Empresa
-Comment=Servidor: $OWNCLOUD_SERVER
-Exec=owncloud
-Icon=owncloud
-Terminal=false
-Categories=Network;
-EOF
-
-cat > "$DESKTOP_DIR/Central-Telefonica.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Central Telefónica
-Comment=Servidor: $TELEFONIA_SERVER
-Exec=linphone
-Icon=linphone
-Terminal=false
-Categories=Network;
-EOF
-
-chmod +x "$DESKTOP_DIR/"*.desktop
-
-# LIMPIEZA FINAL - Limpiar repositorios agregados temporalmente
-echo "Limpiando repositorios temporales..."
-rm -f /etc/apt/sources.list.d/linphone.list
-apt update
-
-echo "Limpiando sistema..."
-apt autoremove -y
-apt autoclean -y
-
-# EJECUTAR VERIFICACIÓN COMPLETA
-verificar_instalacion
-
-# CREAR SCRIPT DE VERIFICACIÓN PERMANENTE
-cat > /usr/local/bin/verificar-instalacion.sh << 'EOF'
-#!/bin/bash
-# Script de verificación permanente
-echo "=== VERIFICACIÓN EMPRESARIAL - EJECUTAR COMO ROOT ==="
-bash -c "$(declare -f verificar_instalacion); verificar_instalacion"
-EOF
-chmod +x /usr/local/bin/verificar-instalacion.sh
-
-# CREAR SCRIPT DE CORRECCIÓN DEL DOCK
-cat > /usr/local/bin/corregir-dock.sh << 'EOF'
-#!/bin/bash
-echo "=== CORRECCIÓN MANUAL DEL DOCK ==="
-echo "Ejecutando configuración forzada..."
-
-# Detectar usuario
-usuario=$(who | head -n1 | awk '{print $1}')
-echo "Usuario: $usuario"
-
-# Configurar Dash to Dock forzadamente
-gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
-gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
-gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
-gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
-gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true
-
-echo "✓ Configuración aplicada"
-echo "Si no funciona, REINICIA el sistema"
-echo "O ejecuta: gnome-shell --replace"
-EOF
-
-chmod +x /usr/local/bin/corregir-dock.sh
-
-# MENSAJE FINAL
-echo ""
-echo "=================================================="
-echo "✅ CONFIGURACIÓN EMPRESARIAL COMPLETADA!"
-echo "=================================================="
-echo ""
-echo "🎯 RESUMEN EJECUTADO:"
-echo "✓ Verificación completa mostrada arriba"
-echo "✓ Linphone instalado desde repositorios no oficiales"
-echo "✓ Dock inferior configurado y activado"
-echo "✓ Todas las aplicaciones instaladas y verificadas"
-echo "✓ Servicios configurados y en ejecución"
-echo ""
-echo "🔧 COMANDOS ÚTILES:"
-echo "   verificar-instalacion.sh  - Verificar estado del sistema"
-echo "   corregir-dock.sh          - Corregir dock si no funciona"
-echo ""
-echo "🔄 ACCIONES RECOMENDADAS:"
-echo "1. Si el dock no funciona: CERRAR SESIÓN y volver a entrar"
-echo "2. O REINICIAR el sistema para aplicar todos los cambios"
-echo "3. Las ventanas minimizadas aparecerán en la barra inferior"
-echo "=================================================="
+    echo "✓ Extensiones activadas y GNOME
