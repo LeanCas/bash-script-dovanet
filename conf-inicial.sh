@@ -461,46 +461,25 @@ check_success "Thunderbird"
 #!/bin/bash
 set -e
 
-echo "=== Instalando dependencias de compilación (incluyendo Qt6 y compatibilidad con Qt5) ==="
+echo "=== Instalando dependencias mínimas ==="
 sudo apt update
-sudo apt install -y \
-    git build-essential cmake ninja-build pkg-config \
-    libx11-dev libxext-dev libxrender-dev libxinerama-dev libxtst-dev \
-    libxrandr-dev libxi-dev libpulse-dev libasound2-dev \
-    libsqlite3-dev libssl-dev libvpx-dev zlib1g-dev libspeex-dev \
-    libspeexdsp-dev libopus-dev libavcodec-dev libavutil-dev \
-    libswscale-dev libswresample-dev libxml2-dev \
-    qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools \
-    qt6-l10n-tools qt6-svg-dev \
-    qt6-5compat-dev \
-    qml6-module-qtquick qml6-module-qtquick-controls \
-    qml6-module-qtquick-dialogs qml6-module-qtquick-layouts \
-    qml6-module-qtquick-templates qml6-module-qtwebsockets
+sudo apt install -y wget libfuse2
 
-echo "=== Clonando repositorio de Linphone Desktop ==="
-mkdir -p ~/src && cd ~/src
-if [ ! -d "linphone-desktop" ]; then
-    git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git
-fi
-cd linphone-desktop
-git pull
+echo "=== Descargando Linphone AppImage ==="
+LINPHONE_URL="https://www.linphone.org/releases/linux/app/Linphone-latest-x86_64.AppImage"
+DESTINO="/opt/linphone.AppImage"
 
-echo "=== Preparando compilación con Qt6 ==="
-mkdir -p build && cd build
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DLINPHONE_QT=Qt6
+sudo wget -O "$DESTINO" "$LINPHONE_URL"
 
-echo "=== Compilando Linphone ==="
-ninja
+echo "=== Asignando permisos de ejecución ==="
+sudo chmod +x "$DESTINO"
 
-echo "=== Instalando en el sistema ==="
-sudo ninja install
-
-echo "=== Creando acceso directo ==="
+echo "=== Creando acceso directo en el sistema ==="
 sudo tee /usr/share/applications/linphone.desktop > /dev/null <<EOL
 [Desktop Entry]
 Name=Linphone
 Comment=VoIP SIP Client
-Exec=/usr/local/bin/linphone
+Exec=$DESTINO
 Icon=linphone
 Terminal=false
 Type=Application
@@ -508,7 +487,7 @@ Categories=Network;Telephony;
 EOL
 
 echo "=== Instalación completada ==="
-echo "Podés abrir Linphone desde el menú de aplicaciones o ejecutando: linphone"
+echo "Podés ejecutar Linphone desde el menú de aplicaciones o con: $DESTINO"
 
 # 10. SSH Server
 echo "Instalando SSH Server..."
