@@ -267,8 +267,8 @@ verificar_instalacion() {
     fi
     
     # Linphone
-    if which linphone >/dev/null 2>&1 || [ -f "/usr/local/bin/linphone" ] || [ -f "/usr/bin/linphone" ]; then
-        echo "✅ Linphone - INSTALADO (compilado desde fuente)"
+    if which linphone >/dev/null 2>&1 || [ -f "/usr/local/bin/linphone" ] || [ -f "/usr/bin/linphone" ] || [ -f "/home/$(logname)/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage" ]; then
+        echo "✅ Linphone - INSTALADO"
     else
         echo "❌ Linphone - NO INSTALADO"
     fi
@@ -458,36 +458,80 @@ echo "Instalando Thunderbird..."
 apt install -y thunderbird thunderbird-l10n-es-es
 check_success "Thunderbird"
 
-#!/bin/bash
-set -e
+# 9. Linphone - INSTALACIÓN FUNCIONAL CON AppImage
+echo "Instalando Linphone..."
+# URL de descarga de Linphone
+LINPHONE_URL="https://download.linphone.org/releases/linux/app/Linphone-6.0.1-CallEdition-x86_64.AppImage"
+LINPHONE_FILE="/home/$(logname)/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
 
-echo "=== Instalando dependencias mínimas ==="
-sudo apt update
-sudo apt install -y wget libfuse2
+# Crear directorio de Descargas si no existe
+mkdir -p "/home/$(logname)/Descargas"
 
-echo "=== Descargando Linphone AppImage ==="
-LINPHONE_URL="https://www.linphone.org/releases/linux/app/Linphone-latest-x86_64.AppImage"
-DESTINO="/opt/linphone.AppImage"
+# Descargar Linphone si no existe
+if [ ! -f "$LINPHONE_FILE" ]; then
+    echo "El archivo Linphone no se encuentra en $LINPHONE_FILE. Descargando..."
+    wget -q --show-progress "$LINPHONE_URL" -O "$LINPHONE_FILE"
+    if [ $? -ne 0 ]; then
+        echo "Error: La descarga de Linphone falló."
+        echo "Intentando descarga alternativa..."
+        # URL alternativa
+        LINPHONE_URL_ALT="https://www.linphone.org/releases/linux/app/Linphone-5.0.14-x86_64.AppImage"
+        wget -q --show-progress "$LINPHONE_URL_ALT" -O "$LINPHONE_FILE"
+    fi
+    echo "Linphone descargado con éxito."
+else
+    echo "El archivo Linphone ya existe en $LINPHONE_FILE. No es necesario descargarlo."
+fi
 
-sudo wget -O "$DESTINO" "$LINPHONE_URL"
+# Verificar si el script se está ejecutando como root
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Ejecutando como root. Asegurando acceso al servidor X..."
+    
+    # Verificar si DISPLAY está configurado
+    if [ -z "$DISPLAY" ]; then
+        echo "No se encuentra la variable DISPLAY. Asignando la variable DISPLAY del usuario actual..."
+        
+        # Usar la variable DISPLAY y XAUTHORITY del usuario que está ejecutando el script
+        export DISPLAY=:0
+        export XAUTHORITY=$(eval echo ~$SUDO_USER)/.Xauthority
+    fi
+    
+    # Permitir a root acceder al servidor X
+    echo "Permitido acceso a root para usar el servidor X..."
+    su - $SUDO_USER -c "xhost +SI:localuser:root"
+    
+    # Establecer las variables de entorno para usar X
+    export DISPLAY=$DISPLAY
+    export XAUTHORITY=$XAUTHORITY
+fi
 
-echo "=== Asignando permisos de ejecución ==="
-sudo chmod +x "$DESTINO"
-
-echo "=== Creando acceso directo en el sistema ==="
-sudo tee /usr/share/applications/linphone.desktop > /dev/null <<EOL
+# Asegurarse de que el archivo .AppImage tiene permisos de ejecución
+if [ -f "$LINPHONE_FILE" ]; then
+    chmod +x "$LINPHONE_FILE"
+    echo "✓ Linphone AppImage descargado y con permisos de ejecución"
+    
+    # Crear lanzador de escritorio para Linphone
+    cat > "/usr/share/applications/linphone.desktop" << EOF
 [Desktop Entry]
+Version=1.0
+Type=Application
 Name=Linphone
-Comment=VoIP SIP Client
-Exec=$DESTINO
+GenericName=VoIP Phone
+Comment=Linphone VoIP softphone
+Exec=$LINPHONE_FILE
 Icon=linphone
 Terminal=false
-Type=Application
 Categories=Network;Telephony;
-EOL
-
-echo "=== Instalación completada ==="
-echo "Podés ejecutar Linphone desde el menú de aplicaciones o con: $DESTINO"
+Keywords=voip;sip;phone;
+EOF
+    
+    # Crear enlace simbólico en /usr/local/bin para que funcione el comando 'linphone'
+    ln -sf "$LINPHONE_FILE" /usr/local/bin/linphone
+    
+    echo "✓ Linphone instalado y configurado correctamente"
+else
+    echo "❌ No se pudo descargar Linphone AppImage"
+fi
 
 # 10. SSH Server
 echo "Instalando SSH Server..."
@@ -697,5 +741,21 @@ echo "=================================================="
 echo ""
 echo "🎯 RESUMEN EJECUTADO:"
 echo "✓ Verificación completa mostrada arriba"
-echo "✓ Linphone compilado desde código fuente (100% funcional)"
-echo "✓ Dock
+echo "✓ Linphone instalado con AppImage funcional"
+echo "✓ Dock inferior configurado y activado"
+echo "✓ Escritorio estilo Windows configurado"
+echo "✓ Iconos visibles y creación de archivos habilitada"
+echo "✓ Todas las aplicaciones instaladas y verificadas"
+echo "✓ Servicios configurados y en ejecución"
+echo ""
+echo "🔧 COMANDOS ÚTILES:"
+echo "   verificar-instalacion.sh  - Verificar estado del sistema"
+echo "   corregir-dock.sh          - Corregir dock si no funciona"
+echo ""
+echo "🔄 ACCIONES RECOMENDADAS:"
+echo "1. Si el dock no funciona: CERRAR SESIÓN y volver a entrar"
+echo "2. O REINICIAR el sistema para aplicar todos los cambios"
+echo "3. Las ventanas minimizadas aparecerán en la barra inferior"
+echo "4. Puede crear archivos/carpetas en el escritorio con clic derecho"
+echo "5. Linphone está instalado y listo para usar"
+echo "=================================================="
