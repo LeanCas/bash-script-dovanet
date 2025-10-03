@@ -177,9 +177,6 @@ Documento de texto creado el $(date)
 Puede editar este documento con cualquier editor de texto.
 EOF
 
-    # Plantilla de documento vacío
-    cat > "$TEMPLATES_DIR/Documento vacío" << 'EOF'
-EOF
 
     # Hacer las plantillas ejecutables y con permisos correctos
     chown -R $usuario:$usuario "$TEMPLATES_DIR"
