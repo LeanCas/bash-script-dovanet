@@ -19,102 +19,7 @@ check_success() {
         return 1
     fi
 }
-# Función para configurar aplicaciones que se abren al iniciar el sistema
-configurar_inicio_automatico() {
-    local usuario=$(logname)
-    
-    if [ -z "$usuario" ]; then
-        echo "⚠ No se puede detectar usuario para configurar inicio automático"
-        return 1
-    fi
-    
-    local usuario_id=$(id -u $usuario 2>/dev/null)
-    if [ -z "$usuario_id" ]; then
-        echo "⚠ No se puede obtener ID del usuario $usuario"
-        return 1
-    fi
-    
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
-    
-    echo "Configurando aplicaciones para inicio automático..."
-    
-    # Crear directorio de autostart si no existe
-    AUTOSTART_DIR="/home/$usuario/.config/autostart"
-    mkdir -p "$AUTOSTART_DIR"
-    
-    # 1. OwnCloud - Inicio automático
-    cat > "$AUTOSTART_DIR/owncloud-autostart.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=OwnCloud
-Exec=owncloud
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Comment=Sync de archivos empresariales
-EOF
 
-    # 2. Gajim - Inicio automático
-    cat > "$AUTOSTART_DIR/gajim-autostart.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=Gajim
-Exec=gajim
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Comment=Mensajería interna empresarial
-EOF
-
-    # 3. Thunderbird - Inicio automático
-    cat > "$AUTOSTART_DIR/thunderbird-autostart.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=Thunderbird
-Exec=thunderbird
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Comment=Cliente de correo empresarial
-EOF
-
-    # 4. Linphone - Inicio automático
-    # Primero encontrar la ruta correcta de Linphone
-    LINPHONE_PATH="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
-    if [ ! -f "$LINPHONE_PATH" ]; then
-        # Buscar cualquier archivo Linphone en Descargas
-        LINPHONE_PATH=$(find "/home/$usuario/Descargas" -name "Linphone*.AppImage" | head -1)
-    fi
-    
-    if [ -f "$LINPHONE_PATH" ]; then
-        cat > "$AUTOSTART_DIR/linphone-autostart.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=Linphone
-Exec=$LINPHONE_PATH
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Comment=Central telefónica empresarial
-EOF
-    else
-        echo "⚠ Linphone no encontrado, omitiendo inicio automático"
-    fi
-
-    # Dar permisos correctos
-    chown -R $usuario:$usuario "$AUTOSTART_DIR"
-    chmod +x "$AUTOSTART_DIR/"*.desktop
-    
-    # También configurar mediante GNOME (método alternativo)
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell enabled-extensions "['apps-menu@gnome-shell-extensions.gcampax.github.com', 'dock@gnome-shell-extensions.gcampax.github.com']" 2>/dev/null || true
-    
-    echo "✓ Aplicaciones configuradas para inicio automático:"
-    echo "  - OwnCloud"
-    echo "  - Gajim" 
-    echo "  - Thunderbird"
-    echo "  - Linphone"
-    echo "  Se abrirán automáticamente al iniciar sesión"
-}
 
 # Función para configurar idioma español
 configurar_idioma_espanol() {
@@ -818,7 +723,7 @@ forzar_escritorio_windows
 
 configurar_idioma_espanol
 
-configurar_inicio_automatico
+
 
 
 chmod +x "$DESKTOP_DIR/"*.desktop
