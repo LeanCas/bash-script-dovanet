@@ -682,6 +682,13 @@ echo "Creando lanzadores..."
 DESKTOP_DIR="/home/$(logname)/Escritorio"
 mkdir -p "$DESKTOP_DIR"
 
+# CONFIGURAR ESCRITORIO ESTILO WINDOWS (COMPLETAMENTE FUNCIONAL)
+echo "Configurando escritorio estilo Windows..."
+configurar_escritorio_windows
+
+# FORZAR FUNCIONALIDAD DEL ESCRITORIO
+echo "Asegurando funcionalidad completa..."
+forzar_escritorio_windows
 
 
 
