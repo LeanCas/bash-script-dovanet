@@ -231,11 +231,14 @@ instalar_aplicaciones_empresariales() {
     apt install -y remmina remmina-plugin-rdp remmina-plugin-vnc
     check_success "Remmina"
 
-    # 4. RustDesk
+        # 4. RustDesk - VERSIÓN CORREGIDA
     echo "Instalando RustDesk..."
     wget -q https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb -O /tmp/rustdesk.deb
     if [ -f "/tmp/rustdesk.deb" ]; then
-        apt install -y ./rustdesk.deb
+        # Usar dpkg en lugar de apt para instalar paquetes .deb locales
+        dpkg -i /tmp/rustdesk.deb
+        # Resolver dependencias si las hay
+        apt install -f -y
         rm -f /tmp/rustdesk.deb
         echo "✓ RustDesk instalado"
     else
