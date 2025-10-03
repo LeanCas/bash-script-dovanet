@@ -198,31 +198,7 @@ EOF
     # 7. CREAR ACCESOS DIRECTOS EN EL ESCRITORIO
     echo "Creando accesos directos en el escritorio..."
     
-    # Acceso directo a Archivos
-    cat > "$ESCRITORIO_DIR/Archivos.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Archivos
-Comment=Administrar archivos y carpetas
-Exec=nautilus
-Icon=system-file-manager
-Terminal=false
-Categories=Utility;
-EOF
-
-    # Acceso directo a Terminal
-    cat > "$ESCRITORIO_DIR/Terminal.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Terminal
-Comment=Terminal de sistema
-Exec=gnome-terminal
-Icon=utilities-terminal
-Terminal=false
-Categories=System;
-EOF
+   
 
     # Dar permisos de ejecución a los accesos directos
     chmod +x "$ESCRITORIO_DIR/"*.desktop
@@ -580,21 +556,6 @@ if [ -f "$LINPHONE_FILE" ]; then
     chmod +x "$LINPHONE_FILE"
     echo "✓ Linphone AppImage descargado y con permisos de ejecución"
     
-    # Crear lanzador de escritorio para Linphone
-    cat > "/usr/share/applications/linphone.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Linphone
-GenericName=VoIP Phone
-Comment=Linphone VoIP softphone
-Exec=$LINPHONE_FILE
-Icon=linphone
-Terminal=false
-Categories=Network;Telephony;
-Keywords=voip;sip;phone;
-EOF
-    
     # Crear enlace simbólico en /usr/local/bin para que funcione el comando 'linphone'
     ln -sf "$LINPHONE_FILE" /usr/local/bin/linphone
     
@@ -724,41 +685,8 @@ echo "Creando lanzadores..."
 DESKTOP_DIR="/home/$(logname)/Escritorio"
 mkdir -p "$DESKTOP_DIR"
 
-cat > "$DESKTOP_DIR/Mensajeria-Interna.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Mensajería Interna
-Comment=Servidor: $GAJIM_SERVER
-Exec=gajim
-Icon=gajim
-Terminal=false
-Categories=Network;
-EOF
 
-cat > "$DESKTOP_DIR/OwnCloud-Empresa.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=OwnCloud Empresa
-Comment=Servidor: $OWNCLOUD_SERVER
-Exec=owncloud
-Icon=owncloud
-Terminal=false
-Categories=Network;
-EOF
 
-cat > "$DESKTOP_DIR/Central-Telefonica.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Central Telefónica
-Comment=Servidor: $TELEFONIA_SERVER
-Exec=linphone
-Icon=linphone
-Terminal=false
-Categories=Network;
-EOF
 
 chmod +x "$DESKTOP_DIR/"*.desktop
 
