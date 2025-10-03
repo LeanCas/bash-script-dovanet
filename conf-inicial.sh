@@ -20,6 +20,27 @@ check_success() {
     fi
 }
 
+# Función para configurar idioma español
+configurar_idioma_espanol() {
+    echo "Configurando sistema en español..."
+    
+    # Instalar paquetes de idioma
+    apt install -y locales language-pack-es
+    
+    # Generar locales en español
+    sed -i '/es_ES.UTF-8/s/^#//g' /etc/locale.gen
+    locale-gen es_ES.UTF-8
+    
+    # Configurar locale por defecto
+    update-locale LANG=es_ES.UTF-8 LC_MESSAGES=es_ES.UTF-8
+    
+    # Configurar teclado español
+    sed -i 's/XKBLAYOUT=.*/XKBLAYOUT="es"/' /etc/default/keyboard
+    localectl set-x11-keymap es
+    
+    echo "✓ Idioma español configurado"
+}
+
 # Función para configurar zona horaria de Argentina
 configurar_zona_horaria() {
     echo "Configurando zona horaria de Argentina..."
@@ -698,6 +719,8 @@ configurar_escritorio_windows
 # FORZAR FUNCIONALIDAD DEL ESCRITORIO
 echo "Asegurando funcionalidad completa..."
 forzar_escritorio_windows
+
+configurar_idioma_espanol
 
 
 
