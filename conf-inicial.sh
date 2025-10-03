@@ -431,9 +431,116 @@ verificar_instalacion() {
     echo "=================================================="
 }
 
+# Función para configurar idioma español (FALTABA)
+configurar_idioma_espanol() {
+    echo "🌍 Configurando idioma español..."
+    
+    # Instalar paquetes de idioma
+    apt install -y locales language-pack-es language-pack-gnome-es
+    
+    # Generar locales en español
+    sed -i '/es_ES.UTF-8/s/^#//g' /etc/locale.gen
+    locale-gen es_ES.UTF-8
+    
+    # Configurar locale por defecto
+    update-locale LANG=es_ES.UTF-8 LC_MESSAGES=es_ES.UTF-8
+    
+    # Configurar teclado español
+    sed -i 's/XKBLAYOUT=.*/XKBLAYOUT="es"/' /etc/default/keyboard
+    localectl set-x11-keymap es
+    
+    # Configurar regionales
+    cat > /etc/default/locale << EOF
+LANG=es_ES.UTF-8
+LC_ALL=es_ES.UTF-8
+LC_MESSAGES=es_ES.UTF-8
+EOF
+    
+    # Actualizar directorios de usuario en español
+    usuario=$(logname)
+    if [ -n "$usuario" ]; then
+        sudo -u $usuario LANG=es_ES.UTF-8 xdg-user-dirs-update --force
+    fi
+    
+    echo "✓ Idioma español configurado"
+}
 
-# CONFIGURAR ZONA HORARIA DE ARGENTINA PRIMERO
-configurar_zona_horaria
+# Función para crear lanzador de Linphone (FALTABA)
+crear_lanzador_linphone() {
+    local usuario=$(logname)
+    if [ -z "$usuario" ]; then
+        echo "⚠ No se puede detectar usuario para crear lanzador"
+        return 1
+    fi
+    
+    echo "📱 Creando lanzador de Linphone..."
+    
+    # Ruta del AppImage
+    LINPHONE_FILE="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
+    
+    # Crear lanzador .desktop
+    cat > "/usr/share/applications/linphone.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Linphone
+Comment=Cliente de VoIP y videollamadas
+Exec=$LINPHONE_FILE
+Icon=linphone
+Categories=Network;Telephony;
+Terminal=false
+StartupWMClass=Linphone
+EOF
+
+    # También crear enlace en el escritorio
+    cat > "/home/$usuario/Escritorio/Linphone.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Linphone
+Comment=Cliente de VoIP y videollamadas
+Exec=$LINPHONE_FILE
+Icon=linphone
+Categories=Network;Telephony;
+Terminal=false
+StartupWMClass=Linphone
+EOF
+
+    # Dar permisos
+    chmod +x "/home/$usuario/Escritorio/Linphone.desktop"
+    chown $usuario:$usuario "/home/$usuario/Escritorio/Linphone.desktop"
+    
+    # Descargar icono si no existe
+    if [ ! -f "/usr/share/icons/linphone.png" ]; then
+        wget -q -O /usr/share/icons/linphone.png "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Linphone_icon.svg/240px-Linphone_icon.svg.png" 2>/dev/null || true
+    fi
+    
+    echo "✓ Lanzador de Linphone creado en aplicaciones y escritorio"
+}
+
+# Función para forzar escritorio Windows (MEJORADA)
+forzar_escritorio_windows() {
+    local usuario=$(logname)
+    if [ -z "$usuario" ]; then
+        return 1
+    fi
+    
+    echo "🔄 Forzando configuración de escritorio..."
+    
+    # Crear directorios esenciales en español
+    mkdir -p "/home/$usuario/Escritorio"
+    mkdir -p "/home/$usuario/Plantillas" 
+    mkdir -p "/home/$usuario/Imágenes"
+    mkdir -p "/home/$usuario/Documentos"
+    mkdir -p "/home/$usuario/Descargas"
+    
+    chown -R $usuario:$usuario "/home/$usuario/"
+    
+    # Forzar actualización de directorios
+    sudo -u $usuario LANG=es_ES.UTF-8 xdg-user-dirs-update --force
+    
+    echo "✓ Escritorio forzado en español"
+}
 
 # Habilitar repositorios necesarios
 echo "Habilitando repositorios contrib y non-free..."
@@ -646,6 +753,23 @@ else
     echo "   - Límite de descargas excedido"
 fi
 
+echo "Actualizando sistema de forma segura..."
+apt update
+DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confold"
+
+# CONFIGURAR IDIOMA ESPAÑOL PRIMERO - AGREGAR ESTO
+echo "=== CONFIGURACIÓN DE IDIOMA ==="
+configurar_idioma_espanol
+
+# ... el resto de tus instalaciones ...
+
+# DESPUÉS DE INSTALAR LINPHONE - AGREGAR ESTO:
+echo "=== CREANDO LANZADORES ==="
+crear_lanzador_linphone
+
+# ANTES DEL MENSAJE FINAL - AGREGAR ESTO:
+echo "=== APLICANDO CONFIGURACIONES FINALES ==="
+forzar_escritorio_windows
 
 # CONFIGURAR SERVICIOS
 echo "Configurando servicios..."
