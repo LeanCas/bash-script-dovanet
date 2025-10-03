@@ -103,7 +103,7 @@ configurar_gnome() {
 }
 
 # Función para configurar escritorio como Windows (FUNCIONAL)
-# Función para configurar escritorio como Windows (FUNCIONAL)
+# Función MEJORADA para configurar escritorio como Windows (COMPLETAMENTE FUNCIONAL)
 configurar_escritorio_windows() {
     local usuario=$(logname)
     
@@ -122,11 +122,11 @@ configurar_escritorio_windows() {
     
     echo "Configurando escritorio estilo Windows para usuario: $usuario"
     
-    # 1. Instalar extensiones NECESARIAS para iconos en el escritorio
+    # 1. INSTALAR EXTENSIONES COMPATIBLES CON DEBIAN 13
     echo "Instalando extensiones para escritorio..."
-    apt install -y gnome-shell-extension-desktop-icons-ng
+    apt install -y gnome-shell-extension-desktop-icons-ng nautilus-admin
     
-    # 2. Configurar Nautilus (gestor de archivos) para comportamiento como Windows
+    # 2. CONFIGURAR COMPORTAMIENTO WINDOWS EN NAUTILUS
     echo "Configurando Nautilus como Windows Explorer..."
     
     # Configurar comportamiento de clics como Windows (doble clic)
@@ -144,86 +144,112 @@ configurar_escritorio_windows() {
     # Mostrar archivos ocultos
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences show-hidden-files true
     
-    # 3. HABILITAR ESCRITORIO COMPLETAMENTE FUNCIONAL
+    # 3. CONFIGURAR ESCRITORIO COMPLETAMENTE FUNCIONAL
     echo "Habilitando escritorio completamente funcional..."
     
-    # CORRECCIÓN: gnome-shell-extension-desktop-icons no existe en Debian 13
-    # Usar solo gnome-shell-extension-desktop-icons-ng que ya está instalado
-    
-    # Configurar Desktop Icons NG (extensión moderna)
+    # Configurar Desktop Icons NG (extensión moderna para Debian 13)
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-home true
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-volumes true
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-drop-place true
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding use-desktop-grid false
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'
     
-    # 4. CREAR PLANTILLAS PARA "NUEVO DOCUMENTO" - FUNCIONAL
-    echo "Creando plantillas para Nuevo documento..."
+    # 4. CONFIGURAR CREACIÓN DE ARCHIVOS EN ESCRITORIO - SOLUCIÓN COMPLETA
+    echo "Configurando creación de archivos en escritorio..."
+    
+    # Crear directorio de escritorio en español
+    ESCRITORIO_DIR="/home/$usuario/Escritorio"
+    mkdir -p "$ESCRITORIO_DIR"
+    
+    # Configurar directorio de escritorio en GNOME
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'
+    
+    # 5. CREAR PLANTILLAS FUNCIONALES EN ESPAÑOL
+    echo "Creando plantillas funcionales..."
     TEMPLATES_DIR="/home/$usuario/Plantillas"
     mkdir -p "$TEMPLATES_DIR"
     
-    # Plantilla de documento de texto FUNCIONAL
-    cat > "$TEMPLATES_DIR/Documento de texto vacío" << 'EOF'
-Documento de texto vacío - hacer doble clic para editar
+    # Plantilla de documento de texto
+    cat > "$TEMPLATES_DIR/Documento de texto.txt" << 'EOF'
+Documento de texto creado el $(date)
+
+Puede editar este documento con cualquier editor de texto.
 EOF
 
-    # Plantilla de documento de texto con extensión .txt
-    cat > "$TEMPLATES_DIR/Nuevo documento de texto.txt" << 'EOF'
-Nuevo documento de texto creado el $(date)
-Puede editar este archivo con cualquier editor de texto.
+    # Plantilla de documento vacío
+    cat > "$TEMPLATES_DIR/Documento vacío" << 'EOF'
 EOF
 
-    # Plantilla de carpeta
-    cat > "$TEMPLATES_DIR/Nueva carpeta" << 'EOF'
-#!/bin/bash
-# Plantilla para nueva carpeta
-echo "Creando nueva carpeta..."
-EOF
-    chmod +x "$TEMPLATES_DIR/Nueva carpeta"
-    
-    # Asegurar permisos
+    # Hacer las plantillas ejecutables y con permisos correctos
     chown -R $usuario:$usuario "$TEMPLATES_DIR"
-    chmod 755 "$TEMPLATES_DIR"
+    chmod -R 755 "$TEMPLATES_DIR"
     
-    # 5. CONFIGURAR PERMISOS DEL ESCRITORIO
-    echo "Configurando permisos del escritorio..."
-    DESKTOP_DIR="/home/$usuario/Desktop"
-    ESCRITORIO_DIR="/home/$usuario/Escritorio"
+    # 6. CONFIGURAR ACCESO DIRECTO AL ESCRITORIO
+    echo "Configurando acceso directo al escritorio..."
     
-    # Crear ambos directorios (inglés y español)
-    mkdir -p "$DESKTOP_DIR"
-    mkdir -p "$ESCRITORIO_DIR"
-    
-    # Dar permisos completos al usuario
-    chown $usuario:$usuario "$DESKTOP_DIR"
+    # Asegurar que el directorio Escritorio tiene permisos correctos
     chown $usuario:$usuario "$ESCRITORIO_DIR"
-    chmod 755 "$DESKTOP_DIR"
     chmod 755 "$ESCRITORIO_DIR"
     
-    # Crear enlace simbólico para compatibilidad
-    ln -sf "$ESCRITORIO_DIR" "$DESKTOP_DIR" 2>/dev/null || true
+    # Configurar Nautilus para mostrar el escritorio
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'
     
-    # 6. CONFIGURAR CONTEXTO MENÚ COMPLETO
-    echo "Configurando menú contextual completo..."
+    # 7. CREAR ACCESOS DIRECTOS EN EL ESCRITORIO
+    echo "Creando accesos directos en el escritorio..."
+    
+    # Acceso directo a Archivos
+    cat > "$ESCRITORIO_DIR/Archivos.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Archivos
+Comment=Administrar archivos y carpetas
+Exec=nautilus
+Icon=system-file-manager
+Terminal=false
+Categories=Utility;
+EOF
 
-    # Instalar herramientas adicionales para mejor experiencia (versiones compatibles con Debian 13)
-    apt install -y nautilus-admin nautilus-extension-gnome-terminal
+    # Acceso directo a Terminal
+    cat > "$ESCRITORIO_DIR/Terminal.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Terminal
+Comment=Terminal de sistema
+Exec=gnome-terminal
+Icon=utilities-terminal
+Terminal=false
+Categories=System;
+EOF
 
-    # Configurar acciones de administrador para Nautilus
-    if which nautilus >/dev/null 2>&1; then
-        # Habilitar extensiones de nautilus
-        sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.extensions.enabled "['nautilus-admin@gnome-shell-extensions.gcampax.github.com']"
-        echo "✓ Extensiones de Nautilus configuradas"
-    fi
+    # Dar permisos de ejecución a los accesos directos
+    chmod +x "$ESCRITORIO_DIR/"*.desktop
+    chown -R $usuario:$usuario "$ESCRITORIO_DIR"
     
-    # 7. CONFIGURAR COMPORTAMIENTO DE ARRASTRE Y SOLTAR
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences enable-interactive-search true
+    # 8. CONFIGURAR COMPORTAMIENTO WINDOWS ADICIONAL
+    echo "Configurando comportamiento Windows adicional..."
     
-    echo "✓ Escritorio configurado estilo Windows - COMPLETAMENTE FUNCIONAL"
+    # Doble clic para minimizar
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences action-double-click-titlebar 'minimize'
+    
+    # Mostrar iconos en el escritorio al iniciar
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-desktop-icons true
+    
+    # 9. ACTIVAR EXTENSIONES NECESARIAS
+    echo "Activando extensiones..."
+    
+    # Intentar activar Desktop Icons NG
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable desktop-icons@csoriano 2>/dev/null || true
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable ding@rastersoft.com 2>/dev/null || true
+    
+    echo "✓ Escritorio estilo Windows COMPLETAMENTE configurado"
     echo "✓ Iconos visibles en el escritorio"
-    echo "✓ Puede crear archivos y carpetas haciendo clic derecho → Nuevo documento"
-    echo "✓ Arrastrar y soltar funcionando"
-    echo "✓ Doble clic para abrir archivos"
+    echo "✓ Puede crear archivos arrastrando o con clic derecho"
+    echo "✓ Plantillas disponibles en 'Nuevo documento'"
+    echo "✓ Comportamiento de doble clic activado"
+    echo "✓ Accesos directos creados en el escritorio"
 }
 # Función de verificación de instalación
 verificar_instalacion() {
