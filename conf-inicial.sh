@@ -223,7 +223,7 @@ instalar_aplicaciones_empresariales() {
     
     # 1. Chromium CORREGIDO
     echo "Instalando Chromium..."
-    apt install -y chromium chromium-l10n-es
+    apt install -y chromium
     check_success "Chromium"
 
     # 2. Remmina
@@ -231,18 +231,9 @@ instalar_aplicaciones_empresariales() {
     apt install -y remmina remmina-plugin-rdp remmina-plugin-vnc
     check_success "Remmina"
 
-    # 3. Wine y Winetricks CORREGIDO
-    echo "Instalando Wine..."
-    apt install -y wine
-    check_success "Wine"
-
-    echo "Instalando Winetricks..."
-    apt install -y winetricks
-    check_success "Winetricks"
-
     # 4. RustDesk
     echo "Instalando RustDesk..."
-    wget -q https://github.com/rustdesk/rustdesk/releases/download/1.1.9/rustdesk-1.1.9-x86_64.deb -O /tmp/rustdesk.deb
+    wget -q https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-aarch64.deb -O /tmp/rustdesk.deb
     if [ -f "/tmp/rustdesk.deb" ]; then
         apt install -y ./rustdesk.deb
         rm -f /tmp/rustdesk.deb
