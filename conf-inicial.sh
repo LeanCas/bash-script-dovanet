@@ -233,7 +233,7 @@ instalar_aplicaciones_empresariales() {
 
     # 4. RustDesk
     echo "Instalando RustDesk..."
-    wget -q https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-aarch64.deb -O /tmp/rustdesk.deb
+    wget -q https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb -O /tmp/rustdesk.deb
     if [ -f "/tmp/rustdesk.deb" ]; then
         apt install -y ./rustdesk.deb
         rm -f /tmp/rustdesk.deb
