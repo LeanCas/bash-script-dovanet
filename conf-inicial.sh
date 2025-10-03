@@ -448,7 +448,7 @@ apt update
 
 # 1. Chromium
 echo "Instalando Chromium..."
-apt install -y chromium chromium-l10n
+apt install -y chromium
 check_success "Chromium"
 
 # 2. Remmina
@@ -456,20 +456,11 @@ echo "Instalando Remmina..."
 apt install -y remmina remmina-plugin-rdp remmina-plugin-vnc
 check_success "Remmina"
 
-# 3. Wine y Winetricks
-echo "Instalando Wine..."
-apt install -y wine
-check_success "Wine"
-
-echo "Instalando Winetricks..."
-wget -q -O /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
-chmod +x /usr/local/bin/winetricks
-echo "✓ Winetricks instalado manualmente"
 
 # 4. RustDesk - Instalación mejorada
 echo "Instalando RustDesk..."
 # Instalar desde repositorio oficial
-wget -qO - https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.2.3-x86_64.deb -O rustdesk.deb
+wget -qO - https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb -O rustdesk.deb
 if [ -f "rustdesk.deb" ] && [ -s "rustdesk.deb" ]; then
     apt install -y ./rustdesk.deb
     rm -f rustdesk.deb
