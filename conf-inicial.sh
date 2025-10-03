@@ -646,28 +646,6 @@ else
     echo "   - Límite de descargas excedido"
 fi
 
-# ACTIVACIÓN FORZADA DE EXTENSIONES
-echo "Activando extensiones GNOME forzosamente..."
-usuario=$(logname)
-usuario_id=$(id -u $usuario 2>/dev/null)
-
-if [ -n "$usuario_id" ]; then
-    # Forzar activación de Dash to Dock
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
-        gnome-extensions enable dash-to-dock@micxgx.gmail.com
-    
-    # Forzar activación de iconos en escritorio
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
-        gnome-extensions enable desktop-icons@csoriano
-    
-    # Recargar GNOME Shell completamente
-    echo "Recargando GNOME Shell..."
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$usuario_id/bus \
-        gnome-shell --replace > /dev/null 2>&1 &
-    sleep 5
-    
-    echo "✓ Extensiones activadas y GNOME recargado"
-fi
 
 # CONFIGURAR SERVICIOS
 echo "Configurando servicios..."
