@@ -103,6 +103,7 @@ configurar_gnome() {
 }
 
 # Función para configurar escritorio como Windows (FUNCIONAL)
+# Función para configurar escritorio como Windows (FUNCIONAL)
 configurar_escritorio_windows() {
     local usuario=$(logname)
     
@@ -146,8 +147,8 @@ configurar_escritorio_windows() {
     # 3. HABILITAR ESCRITORIO COMPLETAMENTE FUNCIONAL
     echo "Habilitando escritorio completamente funcional..."
     
-    # Instalar y habilitar la extensión de iconos de escritorio
-    apt install -y gnome-shell-extension-desktop-icons
+    # CORRECCIÓN: gnome-shell-extension-desktop-icons no existe en Debian 13
+    # Usar solo gnome-shell-extension-desktop-icons-ng que ya está instalado
     
     # Configurar Desktop Icons NG (extensión moderna)
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-home true
@@ -158,27 +159,27 @@ configurar_escritorio_windows() {
     
     # 4. CREAR PLANTILLAS PARA "NUEVO DOCUMENTO" - FUNCIONAL
     echo "Creando plantillas para Nuevo documento..."
-    TEMPLATES_DIR="/home/$usuario/Templates"
+    TEMPLATES_DIR="/home/$usuario/Plantillas"
     mkdir -p "$TEMPLATES_DIR"
     
     # Plantilla de documento de texto FUNCIONAL
-    cat > "$TEMPLATES_DIR/Empty Document" << 'EOF'
-Empty document - double click to edit
+    cat > "$TEMPLATES_DIR/Documento de texto vacío" << 'EOF'
+Documento de texto vacío - hacer doble clic para editar
 EOF
 
     # Plantilla de documento de texto con extensión .txt
-    cat > "$TEMPLATES_DIR/New Text Document.txt" << 'EOF'
-New text document created on $(date)
-You can edit this file with any text editor.
+    cat > "$TEMPLATES_DIR/Nuevo documento de texto.txt" << 'EOF'
+Nuevo documento de texto creado el $(date)
+Puede editar este archivo con cualquier editor de texto.
 EOF
 
-    # Plantilla de carpeta (script para crear carpeta)
-    cat > "$TEMPLATES_DIR/New Folder" << 'EOF'
+    # Plantilla de carpeta
+    cat > "$TEMPLATES_DIR/Nueva carpeta" << 'EOF'
 #!/bin/bash
-# This is a folder template
-mkdir "$1"
+# Plantilla para nueva carpeta
+echo "Creando nueva carpeta..."
 EOF
-    chmod +x "$TEMPLATES_DIR/New Folder"
+    chmod +x "$TEMPLATES_DIR/Nueva carpeta"
     
     # Asegurar permisos
     chown -R $usuario:$usuario "$TEMPLATES_DIR"
@@ -203,17 +204,17 @@ EOF
     ln -sf "$ESCRITORIO_DIR" "$DESKTOP_DIR" 2>/dev/null || true
     
     # 6. CONFIGURAR CONTEXTO MENÚ COMPLETO
-echo "Configurando menú contextual completo..."
+    echo "Configurando menú contextual completo..."
 
-# Instalar herramientas adicionales para mejor experiencia (versiones compatibles con Debian 13)
-apt install -y nautilus-admin nautilus-extension-gnome-terminal
+    # Instalar herramientas adicionales para mejor experiencia (versiones compatibles con Debian 13)
+    apt install -y nautilus-admin nautilus-extension-gnome-terminal
 
-# Configurar acciones de administrador para Nautilus
-if which nautilus >/dev/null 2>&1; then
-    # Habilitar extensiones de nautilus
-    gsettings set org.gnome.nautilus.extensions.enabled "['nautilus-admin@gnome-shell-extensions.gcampax.github.com']"
-    echo "✓ Extensiones de Nautilus configuradas"
-fi
+    # Configurar acciones de administrador para Nautilus
+    if which nautilus >/dev/null 2>&1; then
+        # Habilitar extensiones de nautilus
+        sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.extensions.enabled "['nautilus-admin@gnome-shell-extensions.gcampax.github.com']"
+        echo "✓ Extensiones de Nautilus configuradas"
+    fi
     
     # 7. CONFIGURAR COMPORTAMIENTO DE ARRASTRE Y SOLTAR
     sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences enable-interactive-search true
@@ -224,7 +225,6 @@ fi
     echo "✓ Arrastrar y soltar funcionando"
     echo "✓ Doble clic para abrir archivos"
 }
-
 # Función de verificación de instalación
 verificar_instalacion() {
     echo ""
