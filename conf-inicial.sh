@@ -431,9 +431,6 @@ verificar_instalacion() {
     echo "=================================================="
 }
 
-# Actualizar sistema
-echo "Actualizando sistema..."
-apt update && apt upgrade -y
 
 # CONFIGURAR ZONA HORARIA DE ARGENTINA PRIMERO
 configurar_zona_horaria
