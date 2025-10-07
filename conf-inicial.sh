@@ -119,6 +119,135 @@ configurar_gnome() {
     echo "Las ventanas minimizadas se mostrarán en la barra inferior"
 }
 
+# Función para configurar aplicaciones que se inicien automáticamente
+configure_autostart_apps() {
+    print_message "Configurando aplicaciones para auto-arranque..."
+    
+    # Crear directorio de auto-arranque si no existe
+    mkdir -p ~/.config/autostart
+    
+    # Configurar OwnCloud
+    if command -v owncloud &> /dev/null; then
+        cat > ~/.config/autostart/owncloud.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=OwnCloud
+Exec=owncloud
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=Sincronización de archivos con OwnCloud
+EOF
+        print_message "OwnCloud configurado para auto-arranque"
+    else
+        print_warning "OwnCloud no está instalado, omitiendo..."
+    fi
+    
+    # Configurar Gajim
+    if command -v gajim &> /dev/null; then
+        cat > ~/.config/autostart/gajim.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Gajim
+Exec=gajim
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=Cliente de mensajería instantánea XMPP
+EOF
+        print_message "Gajim configurado para auto-arranque"
+    else
+        print_warning "Gajim no está instalado, omitiendo..."
+    fi
+    
+    # Configurar Thunderbird
+    if command -v thunderbird &> /dev/null; then
+        cat > ~/.config/autostart/thunderbird.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Thunderbird
+Exec=thunderbird
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=Cliente de correo electrónico
+EOF
+        print_message "Thunderbird configurado para auto-arranque"
+    else
+        print_warning "Thunderbird no está instalado, omitiendo..."
+    fi
+    
+    # Configurar Linphone
+    if command -v linphone &> /dev/null; then
+        cat > ~/.config/autostart/linphone.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Linphone
+Exec=linphone
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=Cliente de VoIP y videollamadas
+EOF
+        print_message "Linphone configurado para auto-arranque"
+    else
+        print_warning "Linphone no está instalado, omitiendo..."
+    fi
+    
+    # También configurar usando gnome-session-properties (método alternativo)
+    print_message "Configurando método alternativo de auto-arranque..."
+    
+    # Crear script de inicio que verifica si las aplicaciones están instaladas
+    cat > ~/.startup_apps.sh << 'EOF'
+#!/bin/bash
+# Script de inicio para aplicaciones - Ejecutado al inicio de sesión
+
+sleep 5
+
+# Iniciar OwnCloud si está instalado
+if command -v owncloud &> /dev/null; then
+    owncloud &
+fi
+
+# Iniciar Gajim si está instalado
+if command -v gajim &> /dev/null; then
+    gajim &
+fi
+
+# Iniciar Thunderbird si está instalado
+if command -v thunderbird &> /dev/null; then
+    thunderbird &
+fi
+
+# Iniciar Linphone si está instalado
+if command -v linphone &> /dev/null; then
+    linphone &
+fi
+EOF
+
+    chmod +x ~/.startup_apps.sh
+    
+    # Crear entrada de auto-arranque para el script
+    cat > ~/.config/autostart/startup_apps.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Startup Applications
+Exec=/bin/bash $HOME/.startup_apps.sh
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+Comment=Inicia aplicaciones al arranque
+EOF
+
+    print_message "Script de auto-arranque creado en ~/.startup_apps.sh"
+    
+    # Configurar delay para evitar sobrecarga al inicio
+    gsettings set org.gnome.shell.extensions.auto-move-windows delay 5 2>/dev/null || true
+    
+    print_message "Configuración de auto-arranque completada"
+    print_message "Las aplicaciones se iniciarán automáticamente al iniciar sesión"
+}
+
 # Función MEJORADA para configurar escritorio como Windows (COMPLETAMENTE FUNCIONAL)
 configurar_escritorio_windows() {
     local usuario=$(logname)
@@ -797,6 +926,8 @@ verificar_instalacion
 
 # VERIFICAR SEGURIDAD
 verificar_seguridad
+
+configure_autostart_apps
 
 # LIMPIEZA FINAL
 echo "Limpiando sistema..."
