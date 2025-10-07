@@ -119,133 +119,92 @@ configurar_gnome() {
     echo "Las ventanas minimizadas se mostrarán en la barra inferior"
 }
 
-# Función para configurar aplicaciones que se inicien automáticamente
-configure_autostart_apps() {
-    print_message "Configurando aplicaciones para auto-arranque..."
+    # Función para configurar aplicaciones que se abren al inicio
+configurar_autostart_aplicaciones() {
+    local usuario=$(logname)
     
-    # Crear directorio de auto-arranque si no existe
-    mkdir -p ~/.config/autostart
+    if [ -z "$usuario" ]; then
+        echo "⚠ No se puede configurar autostart sin usuario"
+        return 1
+    fi
     
-    # Configurar OwnCloud
-    if command -v owncloud &> /dev/null; then
-        cat > ~/.config/autostart/owncloud.desktop << EOF
+    echo "🚀 CONFIGURANDO APLICACIONES DE INICIO AUTOMÁTICO..."
+    
+    # Directorio de autostart
+    AUTOSTART_DIR="/home/$usuario/.config/autostart"
+    mkdir -p "$AUTOSTART_DIR"
+    
+    # 1. RUSTDESK - Acceso remoto
+    cat > "$AUTOSTART_DIR/rustdesk.desktop" << 'EOF'
 [Desktop Entry]
 Type=Application
-Name=OwnCloud
-Exec=owncloud
+Name=RustDesk
+Comment=Acceso remoto
+Exec=rustdesk
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Comment=Sincronización de archivos con OwnCloud
 EOF
-        print_message "OwnCloud configurado para auto-arranque"
-    else
-        print_warning "OwnCloud no está instalado, omitiendo..."
-    fi
-    
-    # Configurar Gajim
-    if command -v gajim &> /dev/null; then
-        cat > ~/.config/autostart/gajim.desktop << EOF
+
+    # 2. GAJIM - Mensajería
+    cat > "$AUTOSTART_DIR/gajim.desktop" << 'EOF'  
 [Desktop Entry]
 Type=Application
 Name=Gajim
+Comment=Cliente de mensajería
 Exec=gajim
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Comment=Cliente de mensajería instantánea XMPP
 EOF
-        print_message "Gajim configurado para auto-arranque"
-    else
-        print_warning "Gajim no está instalado, omitiendo..."
-    fi
-    
-    # Configurar Thunderbird
-    if command -v thunderbird &> /dev/null; then
-        cat > ~/.config/autostart/thunderbird.desktop << EOF
+
+    # 3. OWNCLOUD - Sincronización de archivos
+    cat > "$AUTOSTART_DIR/owncloud.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=OwnCloud
+Comment=Sincronización de archivos
+Exec=owncloud
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+    # 4. LINPHONE - Telefonía IP
+    LINPHONE_FILE="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
+    cat > "$AUTOSTART_DIR/linphone.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Linphone
+Comment=Telefonía IP
+Exec=$LINPHONE_FILE
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+    # 5. CONFIGURAR THUNDERBIRD para iniciar minimizado
+    cat > "$AUTOSTART_DIR/thunderbird.desktop" << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Thunderbird
+Comment=Cliente de correo
 Exec=thunderbird
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Comment=Cliente de correo electrónico
-EOF
-        print_message "Thunderbird configurado para auto-arranque"
-    else
-        print_warning "Thunderbird no está instalado, omitiendo..."
-    fi
-    
-    # Configurar Linphone
-    if command -v linphone &> /dev/null; then
-        cat > ~/.config/autostart/linphone.desktop << EOF
-[Desktop Entry]
-Type=Application
-Name=Linphone
-Exec=linphone
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Comment=Cliente de VoIP y videollamadas
-EOF
-        print_message "Linphone configurado para auto-arranque"
-    else
-        print_warning "Linphone no está instalado, omitiendo..."
-    fi
-    
-    # También configurar usando gnome-session-properties (método alternativo)
-    print_message "Configurando método alternativo de auto-arranque..."
-    
-    # Crear script de inicio que verifica si las aplicaciones están instaladas
-    cat > ~/.startup_apps.sh << 'EOF'
-#!/bin/bash
-# Script de inicio para aplicaciones - Ejecutado al inicio de sesión
-
-sleep 5
-
-# Iniciar OwnCloud si está instalado
-if command -v owncloud &> /dev/null; then
-    owncloud &
-fi
-
-# Iniciar Gajim si está instalado
-if command -v gajim &> /dev/null; then
-    gajim &
-fi
-
-# Iniciar Thunderbird si está instalado
-if command -v thunderbird &> /dev/null; then
-    thunderbird &
-fi
-
-# Iniciar Linphone si está instalado
-if command -v linphone &> /dev/null; then
-    linphone &
-fi
 EOF
 
-    chmod +x ~/.startup_apps.sh
+    # Dar permisos al usuario
+    chown -R $usuario:$usuario "$AUTOSTART_DIR"
+    chmod -R 755 "$AUTOSTART_DIR"
     
-    # Crear entrada de auto-arranque para el script
-    cat > ~/.config/autostart/startup_apps.desktop << EOF
-[Desktop Entry]
-Type=Application
-Name=Startup Applications
-Exec=/bin/bash $HOME/.startup_apps.sh
-Hidden=false
-NoDisplay=true
-X-GNOME-Autostart-enabled=true
-Comment=Inicia aplicaciones al arranque
-EOF
-
-    print_message "Script de auto-arranque creado en ~/.startup_apps.sh"
-    
-    # Configurar delay para evitar sobrecarga al inicio
-    gsettings set org.gnome.shell.extensions.auto-move-windows delay 5 2>/dev/null || true
-    
-    print_message "Configuración de auto-arranque completada"
-    print_message "Las aplicaciones se iniciarán automáticamente al iniciar sesión"
+    echo "✓ Aplicaciones configuradas para inicio automático:"
+    echo "  - RustDesk (Acceso remoto)"
+    echo "  - Gajim (Mensajería)" 
+    echo "  - OwnCloud (Sincronización)"
+    echo "  - Linphone (Telefonía IP)"
+    echo "  - Thunderbird (Correo)"
 }
 
 # Función MEJORADA para configurar escritorio como Windows (COMPLETAMENTE FUNCIONAL)
@@ -900,7 +859,7 @@ echo "Configurando escritorio estilo Windows..."
 # CAMBIAR POR:
 configurar_escritorio_windows
 forzar_iconos_escritorio
-
+configurar_escritorio_windows
 # CONFIGURAR FONDO DE PANTALLA (OPTIMIZADO)
 echo "Configurando fondo de pantalla..."
 descargar_fondo_pantalla
@@ -920,6 +879,8 @@ systemctl enable ssh 2>/dev/null && systemctl start ssh 2>/dev/null
 echo "Actualizando sistema de forma segura..."
 apt update
 DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confold"
+
+configurar_autostart_aplicaciones
 
 # VERIFICACIÓN FINAL
 verificar_instalacion
