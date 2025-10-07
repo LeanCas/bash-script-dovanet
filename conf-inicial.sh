@@ -119,6 +119,40 @@ configurar_gnome() {
     echo "Las ventanas minimizadas se mostrarán en la barra inferior"
 }
 
+# Función para configurar servicios del sistema que inician automáticamente
+configurar_servicios_sistema() {
+    echo "⚙️ CONFIGURANDO SERVICIOS DEL SISTEMA..."
+    
+    # 1. SSH Server
+    systemctl enable ssh
+    systemctl start ssh
+    echo "✓ SSH Server - Activado"
+    
+    # 2. Servicio de impresión (CUPS)
+    systemctl enable cups
+    systemctl start cups  
+    echo "✓ CUPS (Impresión) - Activado"
+    
+    # 3. USBGuard
+    if systemctl is-active usbguard >/dev/null 2>&1; then
+        systemctl enable usbguard
+        systemctl start usbguard
+        echo "✓ USBGuard - Activado"
+    fi
+    
+    # 4. Network Manager (importante para conexiones)
+    systemctl enable NetworkManager
+    systemctl start NetworkManager
+    echo "✓ NetworkManager - Activado"
+    
+    # 5. Servicio de Bluetooth (si está instalado)
+    if systemctl status bluetooth >/dev/null 2>&1; then
+        systemctl enable bluetooth
+        systemctl start bluetooth
+        echo "✓ Bluetooth - Activado"
+    fi
+}
+
     # Función para configurar aplicaciones que se abren al inicio
 configurar_autostart_aplicaciones() {
     local usuario=$(logname)
@@ -881,6 +915,7 @@ apt update
 DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confold"
 
 configurar_autostart_aplicaciones
+configurar_servicios_sistema
 
 # VERIFICACIÓN FINAL
 verificar_instalacion
