@@ -207,13 +207,14 @@ EOF
     # 4. LINPHONE - Telefonía IP
     LINPHONE_FILE="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
     cat > "$AUTOSTART_DIR/linphone.desktop" << EOF
+LINPHONE_FILE="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
+cat > "$AUTOSTART_DIR/linphone.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Linphone
-Comment=Telefonía IP
-Exec=$LINPHONE_FILE
+Comment=Cliente de VoIP
+Exec=sh -c "sleep 10 && export DISPLAY=:0 && export XAUTHORITY=/home/$usuario/.Xauthority && $LINPHONE_FILE"
 Hidden=false
-NoDisplay=false
 X-GNOME-Autostart-enabled=true
 EOF
 
