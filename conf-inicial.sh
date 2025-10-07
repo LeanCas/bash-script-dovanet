@@ -431,39 +431,6 @@ verificar_instalacion() {
     echo "=================================================="
 }
 
-# Función para configurar idioma español (FALTABA)
-configurar_idioma_espanol() {
-    echo "🌍 Configurando idioma español..."
-    
-    # Instalar paquetes de idioma
-    apt install -y locales language-pack-es language-pack-gnome-es
-    
-    # Generar locales en español
-    sed -i '/es_ES.UTF-8/s/^#//g' /etc/locale.gen
-    locale-gen es_ES.UTF-8
-    
-    # Configurar locale por defecto
-    update-locale LANG=es_ES.UTF-8 LC_MESSAGES=es_ES.UTF-8
-    
-    # Configurar teclado español
-    sed -i 's/XKBLAYOUT=.*/XKBLAYOUT="es"/' /etc/default/keyboard
-    localectl set-x11-keymap es
-    
-    # Configurar regionales
-    cat > /etc/default/locale << EOF
-LANG=es_ES.UTF-8
-LC_ALL=es_ES.UTF-8
-LC_MESSAGES=es_ES.UTF-8
-EOF
-    
-    # Actualizar directorios de usuario en español
-    usuario=$(logname)
-    if [ -n "$usuario" ]; then
-        sudo -u $usuario LANG=es_ES.UTF-8 xdg-user-dirs-update --force
-    fi
-    
-    echo "✓ Idioma español configurado"
-}
 
 # Función para crear lanzador de Linphone (FALTABA)
 crear_lanzador_linphone() {
@@ -512,35 +479,13 @@ EOF
     
     # Descargar icono si no existe
     if [ ! -f "/usr/share/icons/linphone.png" ]; then
-        wget -q -O /usr/share/icons/linphone.png "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Linphone_icon.svg/240px-Linphone_icon.svg.png" 2>/dev/null || true
+        wget -q -O /usr/share/icons/linphone.png "https://www.google.com/imgres?imgurl=https%3A%2F%2Fwww.liveagent.com%2Fapp%2Fuploads%2F2022%2F09%2Flinphone-logo.png&tbnid=04PcJ__GQhuzeM&vet=10CAIQxiAoAGoXChMI2JLRrsmSkAMVAAAAAB0AAAAAEAY..i&imgrefurl=https%3A%2F%2Fwww.liveagent.es%2Fintegraciones%2Flinphone%2F&docid=1wLuIC3zcPNlIM&w=512&h=512&itg=1&q=linphone%206%20logo&ved=0CAIQxiAoAGoXChMI2JLRrsmSkAMVAAAAAB0AAAAAEAY" 2>/dev/null || true
     fi
     
     echo "✓ Lanzador de Linphone creado en aplicaciones y escritorio"
 }
 
-# Función para forzar escritorio Windows (MEJORADA)
-forzar_escritorio_windows() {
-    local usuario=$(logname)
-    if [ -z "$usuario" ]; then
-        return 1
-    fi
-    
-    echo "🔄 Forzando configuración de escritorio..."
-    
-    # Crear directorios esenciales en español
-    mkdir -p "/home/$usuario/Escritorio"
-    mkdir -p "/home/$usuario/Plantillas" 
-    mkdir -p "/home/$usuario/Imágenes"
-    mkdir -p "/home/$usuario/Documentos"
-    mkdir -p "/home/$usuario/Descargas"
-    
-    chown -R $usuario:$usuario "/home/$usuario/"
-    
-    # Forzar actualización de directorios
-    sudo -u $usuario LANG=es_ES.UTF-8 xdg-user-dirs-update --force
-    
-    echo "✓ Escritorio forzado en español"
-}
+
 
 # Habilitar repositorios necesarios
 echo "Habilitando repositorios contrib y non-free..."
@@ -757,12 +702,6 @@ echo "Actualizando sistema de forma segura..."
 apt update
 DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confold"
 
-# CONFIGURAR IDIOMA ESPAÑOL PRIMERO - AGREGAR ESTO
-echo "=== CONFIGURACIÓN DE IDIOMA ==="
-configurar_idioma_espanol
-
-# ... el resto de tus instalaciones ...
-
 # DESPUÉS DE INSTALAR LINPHONE - AGREGAR ESTO:
 echo "=== CREANDO LANZADORES ==="
 crear_lanzador_linphone
@@ -783,6 +722,7 @@ mkdir -p "$DESKTOP_DIR"
 
 
 
+verificar_instalacion
 
 chmod +x "$DESKTOP_DIR/"*.desktop
 
