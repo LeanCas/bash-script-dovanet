@@ -128,148 +128,110 @@ configurar_escritorio_windows() {
         return 1
     fi
     
-    echo "Configurando escritorio estilo Windows para usuario: $usuario"
+    echo "🖥️ CONFIGURANDO ESCRITORIO FUNCIONAL..."
     
-    # 1. INSTALAR EXTENSIONES COMPATIBLES CON DEBIAN 13
-    echo "Instalando extensiones para escritorio..."
-    apt install -y gnome-shell-extension-desktop-icons-ng nautilus-admin
+    # 1. INSTALAR la extensión CORRECTA para iconos en escritorio
+    echo "Instalando extensiones de escritorio..."
+    apt install -y gnome-shell-extension-desktop-icons-ng
     
-    # 2. CONFIGURAR COMPORTAMIENTO WINDOWS EN NAUTILUS
-    echo "Configurando Nautilus como Windows Explorer..."
-    
-    # Configurar comportamiento de clics como Windows (doble clic)
-    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences click-policy 'double'"
-    
-    # Mostrar barra de direcciones completa
-    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences always-use-location-entry true"
-    
-    # Ordenar por nombre por defecto
-    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-sort-order 'name'"
-    
-    # Vista de iconos grandes por defecto
-    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'"
-    
-    # Mostrar archivos ocultos
-    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences show-hidden-files true"
-    
-    # 3. CONFIGURAR ESCRITORIO COMPLETAMENTE FUNCIONAL
-    echo "Habilitando escritorio completamente funcional..."
-    
-    # Configurar Desktop Icons NG (extensión moderna para Debian 13)
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-home true"
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-trash true"
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-volumes true"
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-drop-place true"
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding use-desktop-grid false"
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'"
-    
-    # 4. CONFIGURAR CREACIÓN DE ARCHIVOS EN ESCRITORIO - SOLUCIÓN COMPLETA
-    echo "Configurando creación de archivos en escritorio..."
-    
-    # Crear directorio de escritorio en español
+    # 2. CREAR y CONFIGURAR directorio Escritorio
+    echo "Configurando directorio Escritorio..."
     ESCRITORIO_DIR="/home/$usuario/Escritorio"
     mkdir -p "$ESCRITORIO_DIR"
-    
-    # Configurar directorio de escritorio en GNOME
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'"
-    
-    # 5. CREAR PLANTILLAS FUNCIONALES EN ESPAÑOL
-    echo "Creando plantillas funcionales..."
-    TEMPLATES_DIR="/home/$usuario/Plantillas"
-    mkdir -p "$TEMPLATES_DIR"
-    
-    # Plantilla de documento de texto
-    cat > "$TEMPLATES_DIR/Documento de texto.txt" << 'EOF'
-Documento de texto creado el $(date)
-
-Puede editar este documento con cualquier editor de texto.
-EOF
-
-    # Hacer las plantillas ejecutables y con permisos correctos
-    chown -R $usuario:$usuario "$TEMPLATES_DIR"
-    chmod -R 755 "$TEMPLATES_DIR"
-    
-    # 6. CONFIGURAR ACCESO DIRECTO AL ESCRITORIO
-    echo "Configurando acceso directo al escritorio..."
-    
-    # Asegurar que el directorio Escritorio tiene permisos correctos
     chown $usuario:$usuario "$ESCRITORIO_DIR"
     chmod 755 "$ESCRITORIO_DIR"
     
-    # Configurar Nautilus para mostrar el escritorio
-    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'"
+    # 3. CONFIGURACIÓN ESENCIAL para mostrar iconos
+    echo "Activando iconos en escritorio..."
     
-    # 7. CREAR ACCESOS DIRECTOS EN EL ESCRITORIO
-    echo "Creando accesos directos en el escritorio..."
+    # Configurar Nautilus para manejar el escritorio
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences show-create-link true" || true
     
-    # Crear lanzador para Navegador
-    cat > "$ESCRITORIO_DIR/Navegador Web.desktop" << 'EOF'
+    # Configurar Desktop Icons NG (la extensión moderna)
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-home true" || true
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-trash true" || true
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-volumes true" || true
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-drop-place true" || true
+    
+    # 4. COMPORTAMIENTO WINDOWS
+    echo "Configurando comportamiento Windows..."
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences click-policy 'double'" || true
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-sort-order 'name'" || true
+    
+    # 5. CREAR ACCESOS DIRECTOS BÁSICOS
+    echo "Creando accesos directos..."
+    
+    # Navegador
+    cat > "$ESCRITORIO_DIR/Chromium.desktop" << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Navegador Web
-Comment=Acceso rápido a Internet
+Name=Chromium
+Comment=Navegador web
 Exec=chromium
 Icon=chromium
 Terminal=false
-StartupNotify=true
 Categories=Network;WebBrowser;
 EOF
 
-    # Crear lanzador para Archivos
+    # Archivos
     cat > "$ESCRITORIO_DIR/Archivos.desktop" << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
 Name=Archivos
-Comment=Administrar archivos y carpetas
+Comment=Administrar archivos
 Exec=nautilus
 Icon=system-file-manager
 Terminal=false
-StartupNotify=true
 Categories=System;FileTools;
 EOF
 
-    # Crear lanzador para Terminal
+    # Terminal
     cat > "$ESCRITORIO_DIR/Terminal.desktop" << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
 Name=Terminal
-Comment=Terminal de sistema
+Comment=Terminal del sistema
 Exec=gnome-terminal
 Icon=utilities-terminal
 Terminal=false
-StartupNotify=true
 Categories=System;TerminalEmulator;
 EOF
 
-    # Dar permisos de ejecución a los accesos directos
+    # Dar permisos
     chmod +x "$ESCRITORIO_DIR/"*.desktop
-    chown -R $usuario:$usuario "$ESCRITORIO_DIR"
+    chown $usuario:$usuario "$ESCRITORIO_DIR/"*.desktop
     
-    # 8. CONFIGURAR COMPORTAMIENTO WINDOWS ADICIONAL
-    echo "Configurando comportamiento Windows adicional..."
+    # 6. ACTIVAR EXTENSIÓN - MÉTODO DIRECTO
+    echo "Activando extensión de iconos..."
+    ejecutar_como_usuario "gnome-extensions enable desktop-icons@csoriano" || true
     
-    # Doble clic para minimizar
-    ejecutar_como_usuario "gsettings set org.gnome.desktop.wm.preferences action-double-click-titlebar 'minimize'"
+    echo "✓ Escritorio configurado - Los iconos aparecerán tras reiniciar"
+}
+
+# Función ESPECÍFICA para forzar iconos en escritorio - EJECUTAR DESPUÉS DEL REINICIO
+forzar_iconos_escritorio() {
+    local usuario=$(logname)
     
-    # Mostrar iconos en el escritorio al iniciar
-    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-desktop-icons true"
+    if [ -z "$usuario" ]; then
+        return 1
+    fi
     
-    # 9. ACTIVAR EXTENSIONES NECESARIAS
-    echo "Activando extensiones..."
+    echo "🔧 Activando iconos de escritorio..."
     
-    # Intentar activar Desktop Icons NG
-    ejecutar_como_usuario "gnome-extensions enable desktop-icons@csoriano 2>/dev/null || true"
-    ejecutar_como_usuario "gnome-extensions enable ding@rastersoft.com 2>/dev/null || true"
+    # Métodos alternativos para activar iconos
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.background show-desktop-icons true" || true
     
-    echo "✓ Escritorio estilo Windows COMPLETAMENTE configurado"
-    echo "✓ Iconos visibles en el escritorio"
-    echo "✓ Puede crear archivos arrastrando o con clic derecho"
-    echo "✓ Plantillas disponibles en 'Nuevo documento'"
-    echo "✓ Comportamiento de doble clic activado"
-    echo "✓ Accesos directos creados en el escritorio"
+    # Forzar recarga de extensiones
+    ejecutar_como_usuario "gnome-extensions enable desktop-icons@csoriano" || true
+    ejecutar_como_usuario "gnome-extensions enable ding@rastersoft.com" || true
+    
+    # Configuración adicional para Nautilus
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'" || true
+    
+    echo "✓ Iconos de escritorio activados"
 }
 
 # Función FALTANTE para forzar configuración Windows
@@ -742,7 +704,11 @@ configurar_gnome
 
 # CONFIGURAR ESCRITORIO ESTILO WINDOWS (COMPLETAMENTE FUNCIONAL)
 echo "Configurando escritorio estilo Windows..."
+
+
+# CAMBIAR POR:
 configurar_escritorio_windows
+forzar_iconos_escritorio
 
 # CONFIGURAR FONDO DE PANTALLA (OPTIMIZADO)
 echo "Configurando fondo de pantalla..."
