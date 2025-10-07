@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Script de configuración CORREGIDO para estaciones de trabajo empresariales
 if [ "$EUID" -ne 0 ]; then
     echo "Por favor, ejecuta este script como root o con sudo"
@@ -18,6 +20,29 @@ check_success() {
         echo "⚠ Error en: $1 - Continuando..."
         return 1
     fi
+}
+
+# Función para ejecutar comandos como usuario gráfico
+ejecutar_como_usuario() {
+    local usuario=$(logname)
+    local comando=$1
+    
+    if [ -z "$usuario" ]; then
+        echo "⚠ No se puede ejecutar como usuario: usuario no detectado"
+        return 1
+    fi
+    
+    local usuario_id=$(id -u $usuario)
+    local bus_address="unix:path=/run/user/$usuario_id/bus"
+    
+    # Verificar que la sesión existe
+    if [ ! -S "/run/user/$usuario_id/bus" ]; then
+        echo "❌ ERROR: El usuario $usuario no tiene sesión gráfica activa."
+        echo "   Inicie sesión gráfica primero y luego ejecute el script."
+        return 1
+    fi
+    
+    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$bus_address bash -c "$comando"
 }
 
 # Función para configurar zona horaria de Argentina
@@ -51,14 +76,6 @@ configurar_gnome() {
         return 1
     fi
     
-    local usuario_id=$(id -u $usuario 2>/dev/null)
-    if [ -z "$usuario_id" ]; then
-        echo "⚠ No se puede obtener ID del usuario $usuario"
-        return 1
-    fi
-    
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
-    
     echo "Configurando GNOME para usuario: $usuario"
     
     # SOLUCIÓN DEFINITIVA: Usar Dash to Dock configurado correctamente
@@ -66,43 +83,42 @@ configurar_gnome() {
     apt install -y gnome-shell-extension-dash-to-dock
     
     # Configuraciones básicas de GNOME
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.mutter dynamic-workspaces false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences num-workspaces 1
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.session idle-delay 300
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark"
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
+    ejecutar_como_usuario "gsettings set org.gnome.mutter dynamic-workspaces false"
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.wm.preferences num-workspaces 1"
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.session idle-delay 300"
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'"
     
     # CONFIGURACIÓN DASH TO DOCK PARA COMPORTAMIENTO COMO WINDOWS
     echo "Configurando dock en la parte inferior..."
     
     # Posición en la parte inferior
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'"
     
     # Siempre visible (no se esconde)
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock autohide false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock autohide false"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock intellihide false"
     
     # Mostrar ventanas minimizadas en el dock
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock show-trash false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock show-mounts false
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock show-running-apps true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock show-trash false"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock show-mounts false"
     
     # Tamaño y comportamiento
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 36
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock extend-height true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.dash-to-dock background-opacity 0.8
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 36"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock extend-height true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock background-opacity 0.8"
     
     # Forzar recarga de la extensión
     echo "Activando extensión Dash to Dock..."
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable dash-to-dock@micxgx.gmail.com
+    ejecutar_como_usuario "gnome-extensions enable dash-to-dock@micxgx.gmail.com"
     
     echo "✓ Dock configurado en la parte inferior"
     echo "Las ventanas minimizadas se mostrarán en la barra inferior"
 }
 
-# Función para configurar escritorio como Windows (FUNCIONAL)
 # Función MEJORADA para configurar escritorio como Windows (COMPLETAMENTE FUNCIONAL)
 configurar_escritorio_windows() {
     local usuario=$(logname)
@@ -111,14 +127,6 @@ configurar_escritorio_windows() {
         echo "⚠ No se puede detectar usuario para configurar escritorio"
         return 1
     fi
-    
-    local usuario_id=$(id -u $usuario 2>/dev/null)
-    if [ -z "$usuario_id" ]; then
-        echo "⚠ No se puede obtener ID del usuario $usuario"
-        return 1
-    fi
-    
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
     
     echo "Configurando escritorio estilo Windows para usuario: $usuario"
     
@@ -130,30 +138,30 @@ configurar_escritorio_windows() {
     echo "Configurando Nautilus como Windows Explorer..."
     
     # Configurar comportamiento de clics como Windows (doble clic)
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences click-policy 'double'
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences click-policy 'double'"
     
     # Mostrar barra de direcciones completa
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences always-use-location-entry true
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences always-use-location-entry true"
     
     # Ordenar por nombre por defecto
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-sort-order 'name'
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-sort-order 'name'"
     
     # Vista de iconos grandes por defecto
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'"
     
     # Mostrar archivos ocultos
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences show-hidden-files true
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences show-hidden-files true"
     
     # 3. CONFIGURAR ESCRITORIO COMPLETAMENTE FUNCIONAL
     echo "Habilitando escritorio completamente funcional..."
     
     # Configurar Desktop Icons NG (extensión moderna para Debian 13)
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-home true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-trash true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-volumes true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-drop-place true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding use-desktop-grid false
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-home true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-trash true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-volumes true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-drop-place true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding use-desktop-grid false"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'"
     
     # 4. CONFIGURAR CREACIÓN DE ARCHIVOS EN ESCRITORIO - SOLUCIÓN COMPLETA
     echo "Configurando creación de archivos en escritorio..."
@@ -163,7 +171,7 @@ configurar_escritorio_windows() {
     mkdir -p "$ESCRITORIO_DIR"
     
     # Configurar directorio de escritorio en GNOME
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding start-corner 'top-left'"
     
     # 5. CREAR PLANTILLAS FUNCIONALES EN ESPAÑOL
     echo "Creando plantillas funcionales..."
@@ -177,7 +185,6 @@ Documento de texto creado el $(date)
 Puede editar este documento con cualquier editor de texto.
 EOF
 
-
     # Hacer las plantillas ejecutables y con permisos correctos
     chown -R $usuario:$usuario "$TEMPLATES_DIR"
     chmod -R 755 "$TEMPLATES_DIR"
@@ -190,12 +197,52 @@ EOF
     chmod 755 "$ESCRITORIO_DIR"
     
     # Configurar Nautilus para mostrar el escritorio
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'
+    ejecutar_como_usuario "gsettings set org.gnome.nautilus.preferences default-folder-viewer 'icon-view'"
     
     # 7. CREAR ACCESOS DIRECTOS EN EL ESCRITORIO
     echo "Creando accesos directos en el escritorio..."
     
-   
+    # Crear lanzador para Navegador
+    cat > "$ESCRITORIO_DIR/Navegador Web.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Navegador Web
+Comment=Acceso rápido a Internet
+Exec=chromium
+Icon=chromium
+Terminal=false
+StartupNotify=true
+Categories=Network;WebBrowser;
+EOF
+
+    # Crear lanzador para Archivos
+    cat > "$ESCRITORIO_DIR/Archivos.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Archivos
+Comment=Administrar archivos y carpetas
+Exec=nautilus
+Icon=system-file-manager
+Terminal=false
+StartupNotify=true
+Categories=System;FileTools;
+EOF
+
+    # Crear lanzador para Terminal
+    cat > "$ESCRITORIO_DIR/Terminal.desktop" << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Terminal
+Comment=Terminal de sistema
+Exec=gnome-terminal
+Icon=utilities-terminal
+Terminal=false
+StartupNotify=true
+Categories=System;TerminalEmulator;
+EOF
 
     # Dar permisos de ejecución a los accesos directos
     chmod +x "$ESCRITORIO_DIR/"*.desktop
@@ -205,17 +252,17 @@ EOF
     echo "Configurando comportamiento Windows adicional..."
     
     # Doble clic para minimizar
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.desktop.wm.preferences action-double-click-titlebar 'minimize'
+    ejecutar_como_usuario "gsettings set org.gnome.desktop.wm.preferences action-double-click-titlebar 'minimize'"
     
     # Mostrar iconos en el escritorio al iniciar
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings set org.gnome.shell.extensions.ding show-desktop-icons true
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.ding show-desktop-icons true"
     
     # 9. ACTIVAR EXTENSIONES NECESARIAS
     echo "Activando extensiones..."
     
     # Intentar activar Desktop Icons NG
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable desktop-icons@csoriano 2>/dev/null || true
-    sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gnome-extensions enable ding@rastersoft.com 2>/dev/null || true
+    ejecutar_como_usuario "gnome-extensions enable desktop-icons@csoriano 2>/dev/null || true"
+    ejecutar_como_usuario "gnome-extensions enable ding@rastersoft.com 2>/dev/null || true"
     
     echo "✓ Escritorio estilo Windows COMPLETAMENTE configurado"
     echo "✓ Iconos visibles en el escritorio"
@@ -224,6 +271,119 @@ EOF
     echo "✓ Comportamiento de doble clic activado"
     echo "✓ Accesos directos creados en el escritorio"
 }
+
+# Función FALTANTE para forzar configuración Windows
+forzar_escritorio_windows() {
+    local usuario=$(logname)
+    
+    if [ -z "$usuario" ]; then
+        echo "⚠ No se puede detectar usuario para forzar escritorio"
+        return 1
+    fi
+    
+    echo "🔧 Forzando configuración Windows..."
+    
+    # Reactivar extensiones
+    ejecutar_como_usuario "gnome-extensions enable dash-to-dock@micxgx.gmail.com 2>/dev/null || true"
+    
+    # Forzar recarga de GNOME Shell
+    ejecutar_como_usuario "gsettings set org.gnome.shell enabled-extensions \"['dash-to-dock@micxgx.gmail.com']\""
+    
+    # Reconfigurar dock
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'BOTTOM'"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true"
+    ejecutar_como_usuario "gsettings set org.gnome.shell.extensions.dash-to-dock autohide false"
+    
+    echo "✓ Configuración Windows forzada"
+}
+
+# Función para crear lanzador de Linphone
+crear_lanzador_linphone() {
+    local usuario=$(logname)
+    if [ -z "$usuario" ]; then
+        echo "⚠ No se puede detectar usuario para crear lanzador"
+        return 1
+    fi
+    
+    echo "📱 Creando lanzador de Linphone..."
+    
+    # Ruta del AppImage
+    LINPHONE_FILE="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
+    
+    # Crear lanzador .desktop en aplicaciones
+    cat > "/usr/share/applications/linphone.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Linphone
+Comment=Cliente de VoIP y videollamadas
+Exec=$LINPHONE_FILE
+Icon=linphone
+Categories=Network;Telephony;
+Terminal=false
+StartupWMClass=Linphone
+EOF
+
+    # También crear enlace en el escritorio
+    cat > "/home/$usuario/Escritorio/Linphone.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Linphone
+Comment=Cliente de VoIP y videollamadas
+Exec=$LINPHONE_FILE
+Icon=linphone
+Categories=Network;Telephony;
+Terminal=false
+StartupWMClass=Linphone
+EOF
+
+    # Dar permisos
+    chmod +x "/home/$usuario/Escritorio/Linphone.desktop"
+    chown $usuario:$usuario "/home/$usuario/Escritorio/Linphone.desktop"
+    
+    # Descargar icono si no existe
+    if [ ! -f "/usr/share/icons/linphone.png" ]; then
+        wget -q -O /tmp/linphone.png "https://linphone.org/wp-content/uploads/2022/03/linphone-logo.png" 2>/dev/null || true
+        if [ -f "/tmp/linphone.png" ]; then
+            mv /tmp/linphone.png /usr/share/icons/linphone.png
+        fi
+    fi
+    
+    echo "✓ Lanzador de Linphone creado en aplicaciones y escritorio"
+}
+
+# Función mejorada para descargar fondo de pantalla
+descargar_fondo_pantalla() {
+    local usuario=$(logname)
+    local imagen_url="$IMAGE_URL"
+    local destino="/home/$usuario/Imágenes/fondo-empresa.jpg"
+    
+    mkdir -p "/home/$usuario/Imágenes"
+    
+    echo "📥 Intentando descargar fondo de pantalla..."
+    
+    # Método 1: wget con headers de navegador
+    wget --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+         --header="Accept: image/webp,image/*,*/*;q=0.8" \
+         --no-check-certificate \
+         -O "$destino" "$imagen_url" 2>/dev/null
+    
+    if [ $? -eq 0 ] && [ -f "$destino" ] && [ -s "$destino" ]; then
+        # Configurar fondo
+        ejecutar_como_usuario "gsettings set org.gnome.desktop.background picture-uri 'file://$destino'"
+        ejecutar_como_usuario "gsettings set org.gnome.desktop.background picture-uri-dark 'file://$destino'"
+        echo "✓ Fondo de pantalla configurado desde Google Drive"
+    else
+        # Usar fondo por defecto
+        echo "⚠ Usando fondo por defecto - la descarga falló"
+        rm -f "$destino"
+        # Configurar un fondo oscuro por defecto
+        ejecutar_como_usuario "gsettings set org.gnome.desktop.background picture-uri ''"
+        ejecutar_como_usuario "gsettings set org.gnome.desktop.background primary-color '#2d2d2d'"
+    fi
+}
+
 # Función de verificación de instalación
 verificar_instalacion() {
     echo ""
@@ -371,57 +531,52 @@ verificar_instalacion() {
     echo "🎨 CONFIGURACIONES GNOME:"
     usuario=$(logname 2>/dev/null)
     if [ -n "$usuario" ]; then
-        usuario_id=$(id -u $usuario 2>/dev/null)
-        if [ -n "$usuario_id" ]; then
-            export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$usuario_id/bus"
-            
-            # Tema oscuro
-            tema=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null || echo "no-config")
-            if [ "$tema" = "'prefer-dark'" ]; then
-                echo "✅ Tema oscuro - ACTIVADO"
-            else
-                echo "❌ Tema oscuro - NO ACTIVADO"
-            fi
-            
-            # Workspace único
-            workspaces=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.desktop.wm.preferences num-workspaces 2>/dev/null || echo "0")
-            if [ "$workspaces" = "1" ]; then
-                echo "✅ Workspace único - CONFIGURADO"
-            else
-                echo "❌ Workspace único - NO CONFIGURADO"
-            fi
-            
-            # Dock inferior
-            dock_pos=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.shell.extensions.dash-to-dock dock-position 2>/dev/null || echo "left")
-            if [ "$dock_pos" = "'BOTTOM'" ]; then
-                echo "✅ Dock inferior - CONFIGURADO"
-            else
-                echo "❌ Dock inferior - NO CONFIGURADO"
-            fi
-            
-            # Comportamiento de clics
-            clics=$(sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS gsettings get org.gnome.nautilus.preferences click-policy 2>/dev/null || echo "single")
-            if [ "$clics" = "'double'" ]; then
-                echo "✅ Clic doble como Windows - CONFIGURADO"
-            else
-                echo "❌ Clic doble como Windows - NO CONFIGURADO"
-            fi
-            
-            # Verificar si hay iconos en el escritorio
-            if [ -d "/home/$usuario/Desktop" ] || [ -d "/home/$usuario/Escritorio" ]; then
-                echo "✅ Directorio escritorio - CONFIGURADO"
-            else
-                echo "❌ Directorio escritorio - NO CONFIGURADO"
-            fi
-            
-            # Verificar plantillas
-            if [ -d "/home/$usuario/Templates" ] && [ "$(ls -A /home/$usuario/Templates)" ]; then
-                echo "✅ Plantillas documentos - CONFIGURADAS"
-            else
-                echo "❌ Plantillas documentos - NO CONFIGURADAS"
-            fi
+        # Tema oscuro
+        tema=$(ejecutar_como_usuario "gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null" || echo "no-config")
+        if [ "$tema" = "'prefer-dark'" ]; then
+            echo "✅ Tema oscuro - ACTIVADO"
         else
-            echo "⚠ No se puede verificar GNOME (sin sesión de usuario)"
+            echo "❌ Tema oscuro - NO ACTIVADO"
+        fi
+        
+        # Workspace único
+        workspaces=$(ejecutar_como_usuario "gsettings get org.gnome.desktop.wm.preferences num-workspaces 2>/dev/null" || echo "0")
+        if [ "$workspaces" = "1" ]; then
+            echo "✅ Workspace único - CONFIGURADO"
+        else
+            echo "❌ Workspace único - NO CONFIGURADO"
+        fi
+        
+        # Dock inferior
+        dock_pos=$(ejecutar_como_usuario "gsettings get org.gnome.shell.extensions.dash-to-dock dock-position 2>/dev/null" || echo "left")
+        if [ "$dock_pos" = "'BOTTOM'" ]; then
+            echo "✅ Dock inferior - CONFIGURADO"
+        else
+            echo "❌ Dock inferior - NO CONFIGURADO"
+        fi
+        
+        # Comportamiento de clics
+        clics=$(ejecutar_como_usuario "gsettings get org.gnome.nautilus.preferences click-policy 2>/dev/null" || echo "single")
+        if [ "$clics" = "'double'" ]; then
+            echo "✅ Clic doble como Windows - CONFIGURADO"
+        else
+            echo "❌ Clic doble como Windows - NO CONFIGURADO"
+        fi
+        
+        # Verificar si hay iconos en el escritorio
+        if [ -d "/home/$usuario/Desktop" ] || [ -d "/home/$usuario/Escritorio" ]; then
+            echo "✅ Directorio escritorio - CONFIGURADO"
+        else
+            echo "❌ Directorio escritorio - NO CONFIGURADO"
+        fi
+        
+        # Verificar plantillas
+        if [ -d "/home/$usuario/Templates" ] && [ "$(ls -A /home/$usuario/Templates 2>/dev/null)" ]; then
+            echo "✅ Plantillas documentos - CONFIGURADAS"
+        elif [ -d "/home/$usuario/Plantillas" ] && [ "$(ls -A /home/$usuario/Plantillas 2>/dev/null)" ]; then
+            echo "✅ Plantillas documentos - CONFIGURADAS"
+        else
+            echo "❌ Plantillas documentos - NO CONFIGURADAS"
         fi
     else
         echo "⚠ No se puede verificar GNOME (usuario no detectado)"
@@ -431,66 +586,12 @@ verificar_instalacion() {
     echo "=================================================="
 }
 
-
-# Función para crear lanzador de Linphone (FALTABA)
-crear_lanzador_linphone() {
-    local usuario=$(logname)
-    if [ -z "$usuario" ]; then
-        echo "⚠ No se puede detectar usuario para crear lanzador"
-        return 1
-    fi
-    
-    echo "📱 Creando lanzador de Linphone..."
-    
-    # Ruta del AppImage
-    LINPHONE_FILE="/home/$usuario/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
-    
-    # Crear lanzador .desktop
-    cat > "/usr/share/applications/linphone.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Linphone
-Comment=Cliente de VoIP y videollamadas
-Exec=$LINPHONE_FILE
-Icon=linphone
-Categories=Network;Telephony;
-Terminal=false
-StartupWMClass=Linphone
-EOF
-
-    # También crear enlace en el escritorio
-    cat > "/home/$usuario/Escritorio/Linphone.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Linphone
-Comment=Cliente de VoIP y videollamadas
-Exec=$LINPHONE_FILE
-Icon=linphone
-Categories=Network;Telephony;
-Terminal=false
-StartupWMClass=Linphone
-EOF
-
-    # Dar permisos
-    chmod +x "/home/$usuario/Escritorio/Linphone.desktop"
-    chown $usuario:$usuario "/home/$usuario/Escritorio/Linphone.desktop"
-    
-    # Descargar icono si no existe
-    if [ ! -f "/usr/share/icons/linphone.png" ]; then
-        wget -q -O /usr/share/icons/linphone.png "https://www.google.com/imgres?imgurl=https%3A%2F%2Fwww.liveagent.com%2Fapp%2Fuploads%2F2022%2F09%2Flinphone-logo.png&tbnid=04PcJ__GQhuzeM&vet=10CAIQxiAoAGoXChMI2JLRrsmSkAMVAAAAAB0AAAAAEAY..i&imgrefurl=https%3A%2F%2Fwww.liveagent.es%2Fintegraciones%2Flinphone%2F&docid=1wLuIC3zcPNlIM&w=512&h=512&itg=1&q=linphone%206%20logo&ved=0CAIQxiAoAGoXChMI2JLRrsmSkAMVAAAAAB0AAAAAEAY" 2>/dev/null || true
-    fi
-    
-    echo "✓ Lanzador de Linphone creado en aplicaciones y escritorio"
-}
-
-
+# ========== EJECUCIÓN PRINCIPAL ==========
 
 # Habilitar repositorios necesarios
 echo "Habilitando repositorios contrib y non-free..."
 sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
-apt update
+apt update -y
 
 # INSTALAR APLICACIONES CON MANEJO DE ERRORES
 
@@ -504,26 +605,27 @@ echo "Instalando Remmina..."
 apt install -y remmina remmina-plugin-rdp remmina-plugin-vnc
 check_success "Remmina"
 
+# 3. Wine y Winetricks
+echo "Instalando Wine..."
+apt install -y wine winetricks
+check_success "Wine"
 
 # 4. RustDesk - Instalación mejorada
 echo "Instalando RustDesk..."
-# Instalar desde repositorio oficial
-wget -qO - https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb -O rustdesk.deb
-if [ -f "rustdesk.deb" ] && [ -s "rustdesk.deb" ]; then
-    apt install -y ./rustdesk.deb
-    rm -f rustdesk.deb
-    echo "✓ RustDesk instalado"
+# Método alternativo - desde repositorio si está disponible
+if apt install -y rustdesk 2>/dev/null; then
+    echo "✓ RustDesk instalado desde repositorio"
 else
-    # Método alternativo - script oficial
-    echo "Instalando RustDesk via script oficial..."
-    wget https://github.com/rustdesk/rustdesk/releases/download/1.1.9/rustdesk-1.1.9-x86_64.deb -O rustdesk.deb
-    if [ -f "rustdesk.deb" ]; then
+    # Descargar e instalar manualmente
+    wget -qO rustdesk.deb "https://github.com/rustdesk/rustdesk/releases/download/1.1.9/rustdesk-1.1.9-x86_64.deb" || \
+    wget -qO rustdesk.deb "https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb"
+    
+    if [ -f "rustdesk.deb" ] && [ -s "rustdesk.deb" ]; then
         apt install -y ./rustdesk.deb
         rm -f rustdesk.deb
-        echo "✓ RustDesk instalado"
+        echo "✓ RustDesk instalado manualmente"
     else
         echo "⚠ RustDesk no se pudo instalar automáticamente"
-        echo "   Descargar manualmente desde: https://github.com/rustdesk/rustdesk/releases"
     fi
 fi
 
@@ -552,7 +654,6 @@ check_success "Thunderbird"
 
 # 9. Linphone - INSTALACIÓN FUNCIONAL CON AppImage
 echo "Instalando Linphone..."
-# URL de descarga de Linphone
 LINPHONE_URL="https://download.linphone.org/releases/linux/app/Linphone-6.0.1-CallEdition-x86_64.AppImage"
 LINPHONE_FILE="/home/$(logname)/Descargas/Linphone-6.0.1-CallEdition-x86_64.AppImage"
 
@@ -561,53 +662,25 @@ mkdir -p "/home/$(logname)/Descargas"
 
 # Descargar Linphone si no existe
 if [ ! -f "$LINPHONE_FILE" ]; then
-    echo "El archivo Linphone no se encuentra en $LINPHONE_FILE. Descargando..."
-    wget -q --show-progress "$LINPHONE_URL" -O "$LINPHONE_FILE"
-    if [ $? -ne 0 ]; then
-        echo "Error: La descarga de Linphone falló."
-        echo "Intentando descarga alternativa..."
-        # URL alternativa
-        LINPHONE_URL_ALT="https://www.linphone.org/releases/linux/app/Linphone-5.0.14-x86_64.AppImage"
-        wget -q --show-progress "$LINPHONE_URL_ALT" -O "$LINPHONE_FILE"
+    echo "Descargando Linphone AppImage..."
+    wget -q --show-progress "$LINPHONE_URL" -O "$LINPHONE_FILE" || \
+    wget -q "https://www.linphone.org/releases/linux/app/Linphone-5.0.14-x86_64.AppImage" -O "$LINPHONE_FILE"
+    
+    if [ $? -eq 0 ] && [ -f "$LINPHONE_FILE" ]; then
+        echo "✓ Linphone descargado correctamente"
+    else
+        echo "⚠ No se pudo descargar Linphone AppImage"
     fi
-    echo "Linphone descargado con éxito."
 else
-    echo "El archivo Linphone ya existe en $LINPHONE_FILE. No es necesario descargarlo."
-fi
-
-# Verificar si el script se está ejecutando como root
-if [ "$(id -u)" -eq 0 ]; then
-    echo "Ejecutando como root. Asegurando acceso al servidor X..."
-    
-    # Verificar si DISPLAY está configurado
-    if [ -z "$DISPLAY" ]; then
-        echo "No se encuentra la variable DISPLAY. Asignando la variable DISPLAY del usuario actual..."
-        
-        # Usar la variable DISPLAY y XAUTHORITY del usuario que está ejecutando el script
-        export DISPLAY=:0
-        export XAUTHORITY=$(eval echo ~$SUDO_USER)/.Xauthority
-    fi
-    
-    # Permitir a root acceder al servidor X
-    echo "Permitido acceso a root para usar el servidor X..."
-    su - $SUDO_USER -c "xhost +SI:localuser:root"
-    
-    # Establecer las variables de entorno para usar X
-    export DISPLAY=$DISPLAY
-    export XAUTHORITY=$XAUTHORITY
+    echo "✓ Linphone ya está descargado"
 fi
 
 # Asegurarse de que el archivo .AppImage tiene permisos de ejecución
 if [ -f "$LINPHONE_FILE" ]; then
     chmod +x "$LINPHONE_FILE"
-    echo "✓ Linphone AppImage descargado y con permisos de ejecución"
-    
     # Crear enlace simbólico en /usr/local/bin para que funcione el comando 'linphone'
-    ln -sf "$LINPHONE_FILE" /usr/local/bin/linphone
-    
-    echo "✓ Linphone instalado y configurado correctamente"
-else
-    echo "❌ No se pudo descargar Linphone AppImage"
+    ln -sf "$LINPHONE_FILE" /usr/local/bin/linphone 2>/dev/null || true
+    echo "✓ Linphone configurado con permisos de ejecución"
 fi
 
 # 10. SSH Server
@@ -618,8 +691,10 @@ check_success "SSH Server"
 # 11. Google Earth
 echo "Instalando Google Earth..."
 apt install -y lsb-release libxss1 libnss3 libxrandr2
-# libgconf-2-4 no existe en Debian 13, se omite
-wget -q -O google-earth.deb "https://dl.google.com/dl/earth/client/current/google-earth-pro-stable_current_amd64.deb"
+# Descargar e instalar Google Earth
+wget -q -O google-earth.deb "https://dl.google.com/dl/earth/client/current/google-earth-pro-stable_current_amd64.deb" || \
+wget -q -O google-earth.deb "https://dl.google.com/earth/client/current/google-earth-pro-stable_current_amd64.deb"
+
 if [ -f "google-earth.deb" ]; then
     apt install -y ./google-earth.deb
     rm -f google-earth.deb
@@ -647,67 +722,38 @@ fi
 
 # Bloquear /etc/hosts
 echo "Bloqueando /etc/hosts..."
-chattr +i /etc/hosts 2>/dev/null && echo "✓ /etc/hosts bloqueado"
+chattr +i /etc/hosts 2>/dev/null && echo "✓ /etc/hosts bloqueado" || echo "⚠ No se pudo bloquear /etc/hosts"
 
 # Apagado automático
 echo "Programando apagado automático..."
 cat > /usr/local/bin/apagado-automatico.sh << 'EOF'
 #!/bin/bash
-shutdown -h 19:00 "Apagado programado del sistema"
+# Apagado automático a las 19:00
+shutdown -h 19:00 "Apagado programado del sistema. Guarde su trabajo."
 EOF
 chmod +x /usr/local/bin/apagado-automatico.sh
 echo "0 19 * * * root /usr/local/bin/apagado-automatico.sh" >> /etc/crontab
-echo "✓ Apagado automático programado"
+echo "✓ Apagado automático programado a las 19:00"
 
 # CONFIGURACIONES GNOME (corregidas)
 echo "Aplicando configuraciones GNOME..."
+configurar_zona_horaria
 configurar_gnome
 
 # CONFIGURAR ESCRITORIO ESTILO WINDOWS (COMPLETAMENTE FUNCIONAL)
 echo "Configurando escritorio estilo Windows..."
 configurar_escritorio_windows
 
-# CONFIGURAR FONDO DE PANTALLA (OPTIMIZADO PARA GOOGLE DRIVE)
-echo "Configurando fondo de pantalla desde Google Drive..."
-usuario=$(logname)
-DESKTOP_IMAGE="/home/$usuario/Imágenes/fondo-empresa.jpg"
-mkdir -p "/home/$usuario/Imágenes"
+# CONFIGURAR FONDO DE PANTALLA (OPTIMIZADO)
+echo "Configurando fondo de pantalla..."
+descargar_fondo_pantalla
 
-# Descargar imagen de Google Drive
-echo "Descargando: $IMAGE_URL"
-if wget --no-check-certificate --timeout=45 --tries=3 -O "$DESKTOP_IMAGE" "$IMAGE_URL" 2>/dev/null; then
-    # Verificar que se descargó una imagen válida
-    if [ -f "$DESKTOP_IMAGE" ] && [ -s "$DESKTOP_IMAGE" ] && file "$DESKTOP_IMAGE" | grep -q "image"; then
-        chown $usuario:$usuario "$DESKTOP_IMAGE"
-        # Configurar fondo de pantalla
-        sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $usuario)/bus \
-            gsettings set org.gnome.desktop.background picture-uri "file://$DESKTOP_IMAGE"
-        sudo -u $usuario DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $usuario)/bus \
-            gsettings set org.gnome.desktop.background picture-uri-dark "file://$DESKTOP_IMAGE"
-        echo "✓ Fondo de pantalla configurado correctamente desde Google Drive"
-    else
-        echo "⚠ El archivo descargado no es una imagen válida"
-        echo "   Google Drive puede estar mostrando una página de confirmación"
-        rm -f "$DESKTOP_IMAGE"
-    fi
-else
-    echo "⚠ No se pudo descargar la imagen de Google Drive"
-    echo "   Posibles causas:"
-    echo "   - La imagen es muy grande (>100MB)"
-    echo "   - Necesita confirmación de descarga"
-    echo "   - Límite de descargas excedido"
-fi
-
-echo "Actualizando sistema de forma segura..."
-apt update
-DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confold"
-
-# DESPUÉS DE INSTALAR LINPHONE - AGREGAR ESTO:
-echo "=== CREANDO LANZADORES ==="
+# CREAR LANZADORES DE APPLICACIONES
+echo "Creando lanzadores de aplicaciones..."
 crear_lanzador_linphone
 
-# ANTES DEL MENSAJE FINAL - AGREGAR ESTO:
-echo "=== APLICANDO CONFIGURACIONES FINALES ==="
+# APLICAR CONFIGURACIONES FINALES
+echo "Aplicando configuraciones finales..."
 forzar_escritorio_windows
 
 # CONFIGURAR SERVICIOS
@@ -715,16 +761,13 @@ echo "Configurando servicios..."
 systemctl enable cups 2>/dev/null && systemctl start cups 2>/dev/null
 systemctl enable ssh 2>/dev/null && systemctl start ssh 2>/dev/null
 
-# CREAR LANZADORES
-echo "Creando lanzadores..."
-DESKTOP_DIR="/home/$(logname)/Escritorio"
-mkdir -p "$DESKTOP_DIR"
+# ACTUALIZACIONES FINALES
+echo "Actualizando sistema de forma segura..."
+apt update
+DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confold"
 
-
-
+# VERIFICACIÓN FINAL
 verificar_instalacion
-
-chmod +x "$DESKTOP_DIR/"*.desktop
 
 # LIMPIEZA FINAL
 echo "Limpiando sistema..."
@@ -746,14 +789,23 @@ echo "✓ Iconos visibles y creación de archivos habilitada"
 echo "✓ Todas las aplicaciones instaladas y verificadas"
 echo "✓ Servicios configurados y en ejecución"
 echo ""
-echo "🔧 COMANDOS ÚTILES:"
-echo "   verificar-instalacion.sh  - Verificar estado del sistema"
-echo "   corregir-dock.sh          - Corregir dock si no funciona"
+echo "🔧 PASOS FINALES NECESARIOS:"
 echo ""
-echo "🔄 ACCIONES RECOMENDADAS:"
-echo "1. Si el dock no funciona: CERRAR SESIÓN y volver a entrar"
-echo "2. O REINICIAR el sistema para aplicar todos los cambios"
-echo "3. Las ventanas minimizadas aparecerán en la barra inferior"
-echo "4. Puede crear archivos/carpetas en el escritorio con clic derecho"
-echo "5. Linphone está instalado y listo para usar"
+echo "1. OPCIÓN RECOMENDADA - REINICIAR EQUIPO:"
+echo "   sudo reboot"
+echo ""
+echo "2. OPCIÓN ALTERNATIVA - CERRAR SESIÓN:"
+echo "   - Clic en menú usuario (esquina superior derecha)"
+echo "   - Seleccionar 'Cerrar sesión'"
+echo "   - Volver a iniciar sesión"
+echo ""
+echo "3. SI EL DOCK NO SE VE:"
+echo "   Ejecutar en terminal:"
+echo "   gnome-extensions enable dash-to-dock@micxgx.gmail.com"
+echo "   Luego reiniciar GNOME: Alt + F2, escribir 'r' y Enter"
+echo ""
+echo "4. PARA VERIFICAR NUEVAMENTE:"
+echo "   Ejecutar: sudo $0"
+echo ""
+echo "⚠️  IMPORTANTE: Algunos cambios requieren reinicio para aplicarse completamente"
 echo "=================================================="
