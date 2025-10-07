@@ -233,6 +233,41 @@ forzar_iconos_escritorio() {
     
     echo "✓ Iconos de escritorio activados"
 }
+# Función para verificar configuraciones de seguridad
+verificar_seguridad() {
+    echo ""
+    echo "🔐 VERIFICANDO CONFIGURACIONES DE SEGURIDAD..."
+    echo "=================================================="
+    
+    # Verificar USBGuard
+    if systemctl is-active usbguard >/dev/null 2>&1; then
+        echo "✅ USBGuard - ACTIVO y BLOQUEANDO USB"
+        usbguard list-devices 2>/dev/null | head -5
+    elif [ -f "/etc/udev/rules.d/99-block-usb.rules" ]; then
+        echo "✅ Bloqueo USB alternativo - CONFIGURADO"
+    else
+        echo "❌ Bloqueo USB - NO CONFIGURADO"
+    fi
+    
+    # Verificar apagado automático
+    if grep -q "apagado-automatico" /etc/crontab 2>/dev/null; then
+        echo "✅ Apagado automático 19:00 - PROGRAMADO"
+        grep "apagado-automatico" /etc/crontab
+    else
+        echo "❌ Apagado automático - NO CONFIGURADO"
+    fi
+    
+    # Verificar /etc/hosts bloqueado
+    if lsattr /etc/hosts 2>/dev/null | grep -q "i"; then
+        echo "✅ /etc/hosts - BLOQUEADO (inmutable)"
+    else
+        echo "❌ /etc/hosts - NO BLOQUEADO"
+        # Bloquearlo ahora
+        chattr +i /etc/hosts 2>/dev/null && echo "✓ /etc/hosts bloqueado"
+    fi
+    
+    echo "=================================================="
+}
 
 # Función FALTANTE para forzar configuración Windows
 forzar_escritorio_windows() {
@@ -306,7 +341,7 @@ EOF
     
     # Descargar icono si no existe
     if [ ! -f "/usr/share/icons/linphone.png" ]; then
-        wget -q -O /tmp/linphone.png "https://linphone.org/wp-content/uploads/2022/03/linphone-logo.png" 2>/dev/null || true
+        wget -q -O /tmp/linphone.png "https://images.icon-icons.com/1381/PNG/512/linphone_94743.png" 2>/dev/null || true
         if [ -f "/tmp/linphone.png" ]; then
             mv /tmp/linphone.png /usr/share/icons/linphone.png
         fi
@@ -686,16 +721,43 @@ fi
 echo "Bloqueando /etc/hosts..."
 chattr +i /etc/hosts 2>/dev/null && echo "✓ /etc/hosts bloqueado" || echo "⚠ No se pudo bloquear /etc/hosts"
 
-# Apagado automático
-echo "Programando apagado automático..."
+# CONFIGURACIÓN REAL DE APAGADO AUTOMÁTICO
+echo "⏰ CONFIGURANDO APAGADO AUTOMÁTICO 19:00..."
+
+# Crear script de apagado REAL
 cat > /usr/local/bin/apagado-automatico.sh << 'EOF'
 #!/bin/bash
-# Apagado automático a las 19:00
-shutdown -h 19:00 "Apagado programado del sistema. Guarde su trabajo."
+# Script REAL de apagado automático
+logger "Apagado automático programado ejecutándose - Sistema se apagará en 5 minutos"
+
+# Notificar a usuarios conectados
+wall "⚠️  ATENCIÓN: El sistema se apagará en 5 minutos (19:00). Guarde su trabajo."
+
+# Esperar 5 minutos y luego apagar
+sleep 300
+
+# Apagar REALMENTE el sistema
+shutdown -h now "Apagado automático programado completado"
 EOF
+
 chmod +x /usr/local/bin/apagado-automatico.sh
-echo "0 19 * * * root /usr/local/bin/apagado-automatico.sh" >> /etc/crontab
-echo "✓ Apagado automático programado a las 19:00"
+
+# Configurar cron para ejecutar diariamente a las 18:55 (para apagar a las 19:00)
+echo "55 18 * * * root /usr/local/bin/apagado-automatico.sh" >> /etc/crontab
+
+# También crear un apagado de emergencia más temprano para pruebas
+cat > /usr/local/bin/apagado-prueba.sh << 'EOF'
+#!/bin/bash
+# Apagado de prueba (5 minutos después de ejecutar)
+wall "🔧 APAGADO DE PRUEBA: Sistema se reiniciará en 2 minutos para pruebas"
+sleep 120
+shutdown -r now "Reinicio de prueba completado"
+EOF
+
+chmod +x /usr/local/bin/apagado-prueba.sh
+
+echo "✓ Apagado automático configurado: Diario a las 19:00"
+echo "✓ Script de prueba creado: /usr/local/bin/apagado-prueba.sh"
 
 # CONFIGURACIONES GNOME (corregidas)
 echo "Aplicando configuraciones GNOME..."
@@ -718,9 +780,7 @@ descargar_fondo_pantalla
 echo "Creando lanzadores de aplicaciones..."
 crear_lanzador_linphone
 
-# APLICAR CONFIGURACIONES FINALES
-echo "Aplicando configuraciones finales..."
-forzar_escritorio_windows
+
 
 # CONFIGURAR SERVICIOS
 echo "Configurando servicios..."
@@ -734,6 +794,9 @@ DEBIAN_FRONTEND=noninteractive apt upgrade -y -o Dpkg::Options::="--force-confol
 
 # VERIFICACIÓN FINAL
 verificar_instalacion
+
+# VERIFICAR SEGURIDAD
+verificar_seguridad
 
 # LIMPIEZA FINAL
 echo "Limpiando sistema..."
