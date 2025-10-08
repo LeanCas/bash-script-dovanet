@@ -133,12 +133,12 @@ configurar_servicios_sistema() {
     systemctl start cups  
     echo "✓ CUPS (Impresión) - Activado"
     
-    # 3. USBGuard
-    if systemctl is-active usbguard >/dev/null 2>&1; then
-        systemctl enable usbguard
-        systemctl start usbguard
-        echo "✓ USBGuard - Activado"
-    fi
+    # 3. USB
+    modprobe -r uas usb_storage 2>/dev/null
+    echo "blacklist usb_storage" > /etc/modprobe.d/disable-usb-storage.conf
+    echo "blacklist uas" >> /etc/modprobe.d/disable-usb-storage.conf
+    update-initramfs -u 2>/dev/null
+    echo "Pendrives bloqueados"
     
     # 4. Network Manager (importante para conexiones)
     systemctl enable NetworkManager
@@ -363,14 +363,7 @@ verificar_seguridad() {
     echo "=================================================="
     
     # Verificar USBGuard
-    if systemctl is-active usbguard >/dev/null 2>&1; then
-        echo "✅ USBGuard - ACTIVO y BLOQUEANDO USB"
-        usbguard list-devices 2>/dev/null | head -5
-    elif [ -f "/etc/udev/rules.d/99-block-usb.rules" ]; then
-        echo "✅ Bloqueo USB alternativo - CONFIGURADO"
-    else
-        echo "❌ Bloqueo USB - NO CONFIGURADO"
-    fi
+    
     
     # Verificar apagado automático
     if grep -q "apagado-automatico" /etc/crontab 2>/dev/null; then
@@ -621,12 +614,6 @@ verificar_instalacion() {
         echo "❌ CUPS (Impresión) - INACTIVO"
     fi
     
-    # USBGuard
-    if systemctl is-active usbguard >/dev/null 2>&1; then
-        echo "✅ USBGuard - ACTIVO"
-    else
-        echo "❌ USBGuard - INACTIVO"
-    fi
     
     # Verificar configuraciones de seguridad
     echo ""
@@ -831,14 +818,7 @@ check_success "Sistema de impresión"
 # CONFIGURACIONES DE SEGURIDAD
 
 # USBGuard
-echo "Configurando USBGuard..."
-if apt install -y usbguard; then
-    systemctl enable usbguard
-    systemctl start usbguard
-    echo "✓ USBGuard configurado"
-else
-    echo "⚠ No se pudo instalar USBGuard"
-fi
+echo "Configurando Bloqueo USB..."
 
 # Bloquear /etc/hosts
 echo "Bloqueando /etc/hosts..."
