@@ -47,126 +47,61 @@ ejecutar_como_usuario() {
 }
 
 # Función SIMPLIFICADA para configurar el dock
+# Función que solo agrega aplicaciones INSTALADAS
 configurar_dock_empresarial() {
     local usuario=$(logname)
     
     if [ -z "$usuario" ]; then
-        echo "⚠ No se puede detectar usuario para configurar dock"
         return 1
     fi
     
-    echo "🎯 Configurando dock empresarial..."
+    echo "🎯 Configurando dock solo con apps instaladas..."
     
-    # Directorio para archivos .desktop del usuario
-    local user_desktop_dir="/home/$usuario/.local/share/applications"
-    mkdir -p "$user_desktop_dir"
+    local dock_apps="["
     
-    # CREAR archivos .desktop faltantes
-    echo "📝 Creando archivos .desktop faltantes..."
+    # Verificar cada app y agregar solo si está instalada
+    if which chromium >/dev/null 2>&1 || which chromium-browser >/dev/null 2>&1; then
+        dock_apps+="'chromium.desktop', "
+        echo "  ✅ Chromium - agregado"
+    fi
     
-    # 1. Gajim
     if which gajim >/dev/null 2>&1; then
-        cat > "$user_desktop_dir/gajim.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Gajim
-Comment=Cliente de mensajería instantánea
-Exec=gajim
-Icon=gajim
-Categories=Network;InstantMessaging;
-Terminal=false
-StartupWMClass=Gajim
-EOF
-        chmod +x "$user_desktop_dir/gajim.desktop"
-        echo "  ✅ Gajim - creado"
+        dock_apps+="'gajim.desktop', "
+        echo "  ✅ Gajim - agregado"
     fi
     
-    # 2. OwnCloud
+    if which linphone >/dev/null 2>&1 || [ -f "/home/$usuario/Descargas/Linphone"*".AppImage" ]; then
+        dock_apps+="'linphone.desktop', "
+        echo "  ✅ Linphone - agregado"
+    fi
+    
     if which owncloud >/dev/null 2>&1; then
-        cat > "$user_desktop_dir/owncloud.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=OwnCloud
-Comment=Sincronización de archivos en la nube
-Exec=owncloud
-Icon=owncloud
-Categories=Network;FileTransfer;
-Terminal=false
-StartupWMClass=Owncloud
-EOF
-        chmod +x "$user_desktop_dir/owncloud.desktop"
-        echo "  ✅ OwnCloud - creado"
+        dock_apps+="'owncloud.desktop', "
+        echo "  ✅ OwnCloud - agregado"
     fi
     
-    # 3. Thunderbird
     if which thunderbird >/dev/null 2>&1; then
-        cat > "$user_desktop_dir/thunderbird.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Thunderbird
-Comment=Cliente de correo electrónico
-Exec=thunderbird
-Icon=thunderbird
-Categories=Network;Email;
-Terminal=false
-StartupWMClass=Thunderbird
-EOF
-        chmod +x "$user_desktop_dir/thunderbird.desktop"
-        echo "  ✅ Thunderbird - creado"
+        dock_apps+="'thunderbird.desktop', "
+        echo "  ✅ Thunderbird - agregado"
     fi
     
-    # 4. LibreOffice
     if which libreoffice >/dev/null 2>&1; then
-        cat > "$user_desktop_dir/libreoffice.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=LibreOffice
-Comment=Suite ofimática
-Exec=libreoffice
-Icon=libreoffice-main
-Categories=Office;
-Terminal=false
-StartupWMClass=LibreOffice
-EOF
-        chmod +x "$user_desktop_dir/libreoffice.desktop"
-        echo "  ✅ LibreOffice - creado"
+        dock_apps+="'libreoffice-startcenter.desktop', "
+        echo "  ✅ LibreOffice - agregado"
     fi
     
-    # 5. Captura de pantalla
-    cat > "$user_desktop_dir/gnome-screenshot.desktop" << 'EOF'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Captura de Pantalla
-Comment=Tomar capturas de pantalla
-Exec=gnome-screenshot -i
-Icon=applets-screenshooter
-Categories=Utility;Graphics;
-Terminal=false
-StartupWMClass=gnome-screenshot
-EOF
-    chmod +x "$user_desktop_dir/gnome-screenshot.desktop"
-    echo "  ✅ Captura de pantalla - creado"
+    if which gnome-screenshot >/dev/null 2>&1; then
+        dock_apps+="'gnome-screenshot.desktop'"
+        echo "  ✅ Capturas - agregado"
+    fi
     
-    # Dar permisos al usuario
-    chown -R $usuario:$usuario "$user_desktop_dir"
+    # Remover coma final si existe
+    dock_apps="${dock_apps%, }]"
     
-    # Esperar un momento para que el sistema registre los nuevos archivos
-    echo "⏳ Registrando lanzadores..."
-    sleep 2
+    # Configurar dock
+    ejecutar_como_usuario "gsettings set org.gnome.shell favorite-apps \"$dock_apps\""
     
-    # Configurar el dock con el orden EXACTO que solicitaste
-    local apps_config="['chromium.desktop', 'gajim.desktop', 'linphone.desktop', 'owncloud.desktop', 'thunderbird.desktop', 'libreoffice.desktop', 'gnome-screenshot.desktop']"
-    
-    ejecutar_como_usuario "gsettings set org.gnome.shell favorite-apps \"$apps_config\""
-    
-    echo "✓ Dock configurado con 7 aplicaciones:"
-    echo "  1. Chromium, 2. Gajim, 3. Linphone, 4. OwnCloud"
-    echo "  5. Thunderbird, 6. LibreOffice, 7. Captura de pantalla"
+    echo "✓ Dock configurado con apps disponibles"
 }
 
 # Función para configurar zona horaria de Argentina
