@@ -59,7 +59,6 @@ configurar_dock_empresarial() {
 
     local dock_apps=()
     local local_apps_dir="/home/$usuario/.local/share/applications"
-
     mkdir -p "$local_apps_dir"
 
     # --- Función auxiliar para crear archivos .desktop ---
@@ -82,6 +81,7 @@ Type=Application
 Categories=Utility;
 StartupNotify=true
 EOF
+            update-desktop-database "$local_apps_dir" >/dev/null 2>&1
         fi
     }
 
@@ -128,29 +128,39 @@ EOF
     fi
 
     # --- Capturas de pantalla ---
+    local screenshot_instalada=""
     if which gnome-screenshot >/dev/null 2>&1; then
-        if [ -f /usr/share/applications/gnome-screenshot.desktop ]; then
-            dock_apps+=("'gnome-screenshot.desktop'")
-            echo "  ✅ Capturas - agregado (archivo del sistema)"
-        elif [ -f /usr/share/applications/org.gnome.Screenshot.desktop ]; then
-            dock_apps+=("'org.gnome.Screenshot.desktop'")
-            echo "  ✅ Capturas - agregado (versión org.gnome)"
-        else
-            local desktop_path="$local_apps_dir/gnome-screenshot.desktop"
-            crear_desktop_si_no_existe "$desktop_path" "Captura de pantalla" "gnome-screenshot" "org.gnome.Screenshot"
-            dock_apps+=("'gnome-screenshot.desktop'")
-            echo "  ✅ Capturas - lanzador creado y agregado"
+        screenshot_instalada="gnome-screenshot"
+    elif which flameshot >/dev/null 2>&1; then
+        screenshot_instalada="flameshot"
+    else
+        echo "⚙️ gnome-screenshot no instalado, instalando..."
+        sudo apt update && sudo apt install -y gnome-screenshot
+        if which gnome-screenshot >/dev/null 2>&1; then
+            screenshot_instalada="gnome-screenshot"
+            echo "  ✅ gnome-screenshot instalado"
         fi
     fi
 
-    # --- Generar lista final ---
-    local dock_list="[${dock_apps[*]}]"
+    if [ -n "$screenshot_instalada" ]; then
+        local desktop_name="gnome-screenshot.desktop"
+        local desktop_path="$local_apps_dir/$desktop_name"
+        crear_desktop_si_no_existe "$desktop_path" "Captura de pantalla" "$screenshot_instalada" "org.gnome.Screenshot"
+        dock_apps+=("'$desktop_name'")
+        echo "  ✅ Capturas - agregado al dock"
+    else
+        echo "  ⚠️ No se pudo instalar herramienta de capturas"
+    fi
+
+    # --- Generar lista final correctamente formateada ---
+    local dock_list="[$(IFS=,; echo "${dock_apps[*]}")]"
 
     # --- Aplicar configuración al usuario ---
     ejecutar_como_usuario "gsettings set org.gnome.shell favorite-apps \"$dock_list\""
 
     echo "✓ Dock configurado con apps disponibles"
 }
+
 
 
 # Función para configurar zona horaria de Argentina
