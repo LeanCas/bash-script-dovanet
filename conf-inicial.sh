@@ -93,6 +93,8 @@ EOF
 
     # --- Gajim ---
     if which gajim >/dev/null 2>&1; then
+        local desktop_path="$local_apps_dir/gajim.desktop"
+        crear_desktop_si_no_existe "$desktop_path" "Gajim" "gajim" "gajim"
         dock_apps+=("'gajim.desktop'")
         echo "  ✅ Gajim - agregado"
     fi
