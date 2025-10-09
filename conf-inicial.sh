@@ -163,6 +163,41 @@ EOF
     echo "✓ Dock configurado con apps disponibles"
 }
 
+instalar_clima_tucuman() {
+    local usuario=$(logname)
+    local EXT_UUID="openweather@p0"
+    local EXT_DIR="/home/$usuario/.local/share/gnome-shell/extensions/$EXT_UUID"
+    local GNOME_VER=$(gnome-shell --version | awk '{print $3}')
+    local VERSION_TAG="VERSION_TAG"  # reemplazar con la versión compatible de la extensión
+    
+    echo "☀️ Instalando extensión de clima para TUCUMÁN..."
+
+    # Crear carpeta de extensiones si no existe
+    mkdir -p "$EXT_DIR"
+
+    # Instalar herramientas necesarias
+    if ! which gnome-extensions >/dev/null 2>&1; then
+        echo "⚙️ Instalando gnome-extensions..."
+        sudo apt update && sudo apt install -y gnome-shell-extensions unzip wget
+    fi
+
+    # Descargar OpenWeather
+    echo "📥 Descargando OpenWeather..."
+    wget -O /tmp/openweather.zip "https://extensions.gnome.org/download-extension/$EXT_UUID.shell-extension.zip?version_tag=$VERSION_TAG"
+
+    # Descomprimir
+    unzip -o /tmp/openweather.zip -d "$EXT_DIR"
+
+    # Activar extensión
+    sudo -u "$usuario" gnome-extensions enable $EXT_UUID
+
+    # Configurar ciudad y unidades
+    sudo -u "$usuario" gsettings set org.gnome.shell.extensions.openweather location "San Miguel de Tucumán"
+    sudo -u "$usuario" gsettings set org.gnome.shell.extensions.openweather units "metric"
+
+    echo "✅ Clima configurado para TUCUMÁN. Reinicia GNOME Shell (Alt+F2 → r) si no aparece."
+}
+
 
 
 # Función para configurar zona horaria de Argentina
@@ -1004,7 +1039,7 @@ echo "Creando lanzadores de aplicaciones..."
 crear_lanzador_linphone
 
 configurar_dock_empresarial
-
+instalar_clima_tucuman
 
 # CONFIGURAR SERVICIOS
 echo "Configurando servicios..."
