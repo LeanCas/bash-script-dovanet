@@ -50,59 +50,108 @@ ejecutar_como_usuario() {
 # Función que solo agrega aplicaciones INSTALADAS
 configurar_dock_empresarial() {
     local usuario=$(logname)
-    
+
     if [ -z "$usuario" ]; then
         return 1
     fi
-    
+
     echo "🎯 Configurando dock solo con apps instaladas..."
-    
-    local dock_apps="["
-    
-    # Verificar cada app y agregar solo si está instalada
+
+    local dock_apps=()
+    local local_apps_dir="/home/$usuario/.local/share/applications"
+
+    mkdir -p "$local_apps_dir"
+
+    # --- Función auxiliar para crear archivos .desktop ---
+    crear_desktop_si_no_existe() {
+        local desktop_path="$1"
+        local nombre="$2"
+        local comando="$3"
+        local icono="$4"
+
+        if [ ! -f "$desktop_path" ]; then
+            echo "  🧩 Creando lanzador $nombre..."
+            cat <<EOF > "$desktop_path"
+[Desktop Entry]
+Name=$nombre
+Comment=Aplicación $nombre
+Exec=$comando
+Icon=$icono
+Terminal=false
+Type=Application
+Categories=Utility;
+StartupNotify=true
+EOF
+        fi
+    }
+
+    # --- Chromium ---
     if which chromium >/dev/null 2>&1 || which chromium-browser >/dev/null 2>&1; then
-        dock_apps+="'chromium.desktop', "
+        dock_apps+=("'chromium.desktop'")
         echo "  ✅ Chromium - agregado"
     fi
-    
+
+    # --- Gajim ---
     if which gajim >/dev/null 2>&1; then
-        dock_apps+="'gajim.desktop', "
+        dock_apps+=("'gajim.desktop'")
         echo "  ✅ Gajim - agregado"
     fi
-    
-    if which linphone >/dev/null 2>&1 || [ -f "/home/$usuario/Descargas/Linphone"*".AppImage" ]; then
-        dock_apps+="'linphone.desktop', "
+
+    # --- Linphone (AppImage o instalado) ---
+    if which linphone >/dev/null 2>&1; then
+        dock_apps+=("'linphone.desktop'")
         echo "  ✅ Linphone - agregado"
+    elif ls /home/$usuario/Descargas/Linphone*.AppImage >/dev/null 2>&1; then
+        local linphone_appimage=$(ls /home/$usuario/Descargas/Linphone*.AppImage | head -n 1)
+        local desktop_path="$local_apps_dir/linphone.desktop"
+        crear_desktop_si_no_existe "$desktop_path" "Linphone" "$linphone_appimage" "phone"
+        dock_apps+=("'linphone.desktop'")
+        echo "  ✅ Linphone (AppImage) - lanzador creado y agregado"
     fi
-    
+
+    # --- OwnCloud ---
     if which owncloud >/dev/null 2>&1; then
-        dock_apps+="'owncloud.desktop', "
+        dock_apps+=("'owncloud.desktop'")
         echo "  ✅ OwnCloud - agregado"
     fi
-    
+
+    # --- Thunderbird ---
     if which thunderbird >/dev/null 2>&1; then
-        dock_apps+="'thunderbird.desktop', "
+        dock_apps+=("'thunderbird.desktop'")
         echo "  ✅ Thunderbird - agregado"
     fi
-    
+
+    # --- LibreOffice ---
     if which libreoffice >/dev/null 2>&1; then
-        dock_apps+="'libreoffice-startcenter.desktop', "
+        dock_apps+=("'libreoffice-startcenter.desktop'")
         echo "  ✅ LibreOffice - agregado"
     fi
-    
+
+    # --- Capturas de pantalla ---
     if which gnome-screenshot >/dev/null 2>&1; then
-        dock_apps+="'gnome-screenshot.desktop'"
-        echo "  ✅ Capturas - agregado"
+        if [ -f /usr/share/applications/gnome-screenshot.desktop ]; then
+            dock_apps+=("'gnome-screenshot.desktop'")
+            echo "  ✅ Capturas - agregado (archivo del sistema)"
+        elif [ -f /usr/share/applications/org.gnome.Screenshot.desktop ]; then
+            dock_apps+=("'org.gnome.Screenshot.desktop'")
+            echo "  ✅ Capturas - agregado (versión org.gnome)"
+        else
+            local desktop_path="$local_apps_dir/gnome-screenshot.desktop"
+            crear_desktop_si_no_existe "$desktop_path" "Captura de pantalla" "gnome-screenshot" "org.gnome.Screenshot"
+            dock_apps+=("'gnome-screenshot.desktop'")
+            echo "  ✅ Capturas - lanzador creado y agregado"
+        fi
     fi
-    
-    # Remover coma final si existe
-    dock_apps="${dock_apps%, }]"
-    
-    # Configurar dock
-    ejecutar_como_usuario "gsettings set org.gnome.shell favorite-apps \"$dock_apps\""
-    
+
+    # --- Generar lista final ---
+    local dock_list="[${dock_apps[*]}]"
+
+    # --- Aplicar configuración al usuario ---
+    ejecutar_como_usuario "gsettings set org.gnome.shell favorite-apps \"$dock_list\""
+
     echo "✓ Dock configurado con apps disponibles"
 }
+
 
 # Función para configurar zona horaria de Argentina
 configurar_zona_horaria() {
