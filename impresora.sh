@@ -1,5 +1,5 @@
 #!/bin/bash
-# agregar-impresora.sh - Script para agregar impresora a CUPS (sin prueba automática)
+# agregar-impresora.sh - Script corregido para usuario normal
 
 # Configuración
 IP_IMPRESORA="10.126.67.123"
@@ -17,18 +17,19 @@ log() { echo -e "${GREEN}[INFO]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 warning() { echo -e "${YELLOW}[ADVERTENCIA]${NC} $1"; }
 
-# Verificar si tenemos sudo
+# Verificar si tenemos sudo (VERSIÓN CORREGIDA)
 check_sudo() {
-    if [[ $EUID -eq 0 ]]; then
-        error "No ejecutes este script como root, usa tu usuario normal"
-        exit 1
-    fi
+    log "Verificando permisos..."
     
-    log "Verificando permisos sudo..."
-    sudo -v || {
-        error "No tienes permisos sudo"
-        exit 1
-    }
+    # Solo verifica si el usuario TIENE permisos sudo, no si ES root
+    if ! sudo -n true 2>/dev/null; then
+        log "Se necesitan permisos de administrador..."
+        sudo -v
+        if [ $? -ne 0 ]; then
+            error "No se pudieron obtener permisos sudo"
+            exit 1
+        fi
+    fi
 }
 
 # Verificar conectividad con la impresora
@@ -83,11 +84,7 @@ check_impresora_existente() {
 agregar_impresora() {
     log "Agregando impresora a CUPS..."
     
-    local comando="sudo lpadmin -p '$NOMBRE_IMPRESORA' -E -v 'socket://$IP_IMPRESORA:$PUERTO' -m everywhere"
-    
-    log "Ejecutando: $comando"
-    
-    if eval "$comando"; then
+    if sudo lpadmin -p "$NOMBRE_IMPRESORA" -E -v "socket://$IP_IMPRESORA:$PUERTO" -m everywhere; then
         log "✅ Impresora agregada exitosamente"
         return 0
     else
@@ -122,9 +119,6 @@ mostrar_comandos_prueba() {
     echo
     log "4. Ver estado de la impresora:"
     echo "   lpstat -p $NOMBRE_IMPRESORA"
-    echo
-    log "5. Ver cola de impresión:"
-    echo "   lpq -P $NOMBRE_IMPRESORA"
 }
 
 # Mostrar información final
